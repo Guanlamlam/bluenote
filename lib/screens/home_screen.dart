@@ -1,3 +1,4 @@
+import 'package:bluenote/screens/checking_firebase_screen.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:flutter/material.dart';
 import '../widgets/guanlam/category_button.dart';
@@ -13,6 +14,13 @@ class HomeScreen extends StatelessWidget {
       appBar: CustomAppBar(),
       body: Column(
         children: [
+          //Testing ONLY firebase
+          ElevatedButton(onPressed: (){
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => CheckingFirebaseScreen()),
+            );
+          }, child: Text('Check firebase')),
 
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),

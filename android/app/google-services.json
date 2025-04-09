@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "595682801767",
+    "project_id": "universitycommunity-6ae90",
+    "storage_bucket": "universitycommunity-6ae90.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:595682801767:android:edffd7fc207cb3b6ea7cc2",
+        "android_client_info": {
+          "package_name": "com.example.bluenote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkBGNUMzQWQjKxsrslZLStx4KFEENamzE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:595682801767:android:01aea4316677cec0ea7cc2",
+        "android_client_info": {
+          "package_name": "com.example.midterm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkBGNUMzQWQjKxsrslZLStx4KFEENamzE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
