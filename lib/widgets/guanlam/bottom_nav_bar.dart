@@ -1,7 +1,7 @@
 
 import 'package:bluenote/screens/notifications_screen.dart';
 import 'package:flutter/material.dart';
-
+import 'package:bluenote/screens/auth/user_profile_screen.dart';
 
 class BottomNavBar extends StatelessWidget {
   @override
@@ -25,7 +25,12 @@ class BottomNavBar extends StatelessWidget {
 
           }),
           SizedBox(width: 38), // Space for FAB
-          IconButton(icon: Icon(Icons.person), onPressed: () {}),
+          IconButton(icon: Icon(Icons.person), onPressed: () {  Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => UserProfileScreen()),
+          );
+
+          }),
         ],
       ),
     );
