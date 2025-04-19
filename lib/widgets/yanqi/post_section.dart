@@ -5,22 +5,27 @@ class PostSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Post', style: TextStyle(fontSize: 16)),
-            IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () {
-                // Handle post actions (e.g., delete, edit)
-              },
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Post Content',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          IconButton(
+            onPressed: () {
+              // Handle more options
+            },
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
       ),
     );
   }

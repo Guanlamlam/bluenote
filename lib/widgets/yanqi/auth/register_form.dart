@@ -83,20 +83,8 @@ class _RegisterFormState extends State<RegisterForm> {
         children: [
           const SizedBox(height: 8),
 
-          // Row: Back button + Title
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),  // Using Navigator.push for back action
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 8),
-              const Text('Sign up', style: FormTheme.headerStyle),
-            ],
-          ),
+          // Title without back button
+          const Text('Sign up', style: FormTheme.headerStyle),
           const SizedBox(height: 4),
           const Text('Please fill the following', style: FormTheme.subTextStyle),
           const SizedBox(height: 20),

@@ -7,28 +7,26 @@ class Tabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _tabButton(context, 'Post', selectedTab),
-        const SizedBox(width: 16),
-        _tabButton(context, 'Liked', selectedTab),
-      ],
-    );
-  }
-
-  Widget _tabButton(BuildContext context, String title, String selectedTab) {
-    return ElevatedButton(
-      onPressed: () {
-        // Handle tab change
-      },
-      child: Text(title),
-      style: ElevatedButton.styleFrom(
-        foregroundColor: selectedTab == title ? Colors.white : Colors.blue, backgroundColor: selectedTab == title ? Colors.blue : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        side: const BorderSide(color: Colors.blue),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(
+            tabs: const [
+              Tab(text: 'Post'),
+              Tab(text: 'Liked'),
+            ],
+          ),
+          Container(
+            height: 200, // Adjust as needed
+            child: TabBarView(
+              children: [
+                Center(child: Text('Post content for $selectedTab')),
+                Center(child: Text('Liked content for $selectedTab')),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
