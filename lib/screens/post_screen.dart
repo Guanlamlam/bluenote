@@ -1,3 +1,4 @@
+import 'package:bluenote/service/firebase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -23,6 +24,9 @@ class _PostScreenState extends State<PostScreen> {
 
   final ImagePicker _picker = ImagePicker();
   List<File> _selectedImages = [];
+
+  FirebaseService _firebaseService = FirebaseService();
+
 
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 3) {
@@ -158,9 +162,33 @@ class _PostScreenState extends State<PostScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Handle post submission
+                onPressed: () async {
+                  if (_titleController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Please fill in all fields.')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await _firebaseService.uploadPost(
+                      title: _titleController.text.trim(),
+                      content: _contentController.text.trim(),
+                      category: selectedCategory,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Post uploaded successfully!')),
+                    );
+
+                    Navigator.pop(context); // Go back after posting
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to upload post.')),
+                    );
+                  }
                 },
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF203980), // Match button color
                   shape: RoundedRectangleBorder(
@@ -200,3 +228,102 @@ class _PostScreenState extends State<PostScreen> {
     );
   }
 }
+
+// import 'dart:io';
+// import 'package:flutter/material.dart';
+// import 'package:image_picker/image_picker.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:path/path.dart';
+// import 'package:http_parser/http_parser.dart';
+//
+// class PostScreen extends StatefulWidget {
+//   @override
+//   _PostScreenState createState() => _PostScreenState();
+// }
+//
+// class _PostScreenState extends State<PostScreen> {
+//   final ImagePicker _picker = ImagePicker();
+//   File? _imageFile;
+//   String? _uploadedImageUrl;
+//
+//   // Cloudinary configuration (replace with your actual values)
+//   final String cloudinaryUrl = 'https://api.cloudinary.com/v1_1/diobtnw7s/image/upload';
+//   final String cloudinaryPreset = 'bluenote'; // Replace with your upload preset
+//
+//   // Pick image from gallery
+//   Future<void> pickImage() async {
+//     final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+//     if (picked != null) {
+//       setState(() {
+//         _imageFile = File(picked.path);
+//       });
+//       uploadToCloudinary(_imageFile!);
+//     } else {
+//       print("No image selected!");
+//     }
+//   }
+//
+//   // Upload image to Cloudinary
+//   Future<void> uploadToCloudinary(File imageFile) async {
+//     try {
+//       // Prepare the file and request body
+//       var request = http.MultipartRequest('POST', Uri.parse(cloudinaryUrl));
+//
+//       // Add the file to the request
+//       request.files.add(await http.MultipartFile.fromPath(
+//         'file',
+//         imageFile.path,
+//         contentType: MediaType('image', 'jpg'),  // Set the content type accordingly
+//       ));
+//
+//       // Add the upload preset
+//       request.fields['upload_preset'] = cloudinaryPreset;
+//
+//       // Send the request
+//       var response = await request.send();
+//       var responseBody = await response.stream.bytesToString();
+//
+//       if (response.statusCode == 200) {
+//         print('Upload Success!');
+//         print(responseBody); // Should contain the asset URL and other details
+//       } else {
+//         print('Upload failed with status code ${response.statusCode}:');
+//         print(responseBody); // This should give more information about the error
+//       }
+//
+//     } catch (e) {
+//       print('Error uploading image: $e');
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: Text('Cloudinary Upload Example')),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             _imageFile == null
+//                 ? Text('No image selected.')
+//                 : Image.file(_imageFile!),
+//             SizedBox(height: 20),
+//             ElevatedButton(
+//               onPressed: pickImage,
+//               child: Text('Pick an Image'),
+//             ),
+//             SizedBox(height: 20),
+//             _uploadedImageUrl != null
+//                 ? Column(
+//               children: [
+//                 Text('Uploaded Image URL:'),
+//                 Text(_uploadedImageUrl!),
+//               ],
+//             )
+//                 : Container(),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

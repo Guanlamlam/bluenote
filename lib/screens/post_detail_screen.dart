@@ -4,7 +4,7 @@ class PostDetailScreen extends StatelessWidget {
   final String title;
   final String description;
   final String imageUrl;
-  final List<Map<String, String>> comments;
+  final List comments;
 
   PostDetailScreen({
     required this.title,
@@ -39,7 +39,7 @@ class PostDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Post Image
-          Image.asset(
+          Image.network(
             imageUrl,
             width: double.infinity,
             height: 250,
@@ -52,20 +52,20 @@ class PostDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    // Image.asset('assets/img.png', width: 20, height: 15), // Malaysia Flag
-                    // SizedBox(width: 6),
-                    Text(
-                      title,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+
+                // Image.asset('assets/img.png', width: 20, height: 15), // Malaysia Flag
+                //Title of the post
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
+
                 SizedBox(height: 6),
+
                 Text(
                   description,
                   style: TextStyle(fontSize: 14, color: Colors.black87),
+                  textAlign: TextAlign.justify,
                 ),
                 SizedBox(height: 18),
                 Text(

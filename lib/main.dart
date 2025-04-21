@@ -32,22 +32,17 @@ class AuthChecker extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Debugging: Check connection state
-        print('Auth state connection: ${snapshot.connectionState}');
 
         if (snapshot.connectionState == ConnectionState.active) {
           if (snapshot.hasData) {
             // User is logged in, navigate to HomeScreen
-            print('User is authenticated: ${snapshot.data?.email}');
             return HomeScreen();
           } else {
             // User is not logged in, navigate to LoginScreen
-            print('No authenticated user found.');
             return LoginScreen();
           }
         } else {
           // Waiting for authentication state, show loading spinner
-          print('Waiting for authentication state...');
           return Center(child: CircularProgressIndicator());
         }
       },
