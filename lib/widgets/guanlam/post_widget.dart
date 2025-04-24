@@ -1,6 +1,7 @@
 
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,6 +18,8 @@ class PostWidget extends StatefulWidget {
   final List comments;
   final FirebaseService firebaseService;
   final User user;
+  final Timestamp dateTime;
+
 
   const PostWidget({
     Key? key,
@@ -29,6 +32,7 @@ class PostWidget extends StatefulWidget {
     required this.comments,
     required this.firebaseService,
     required this.user,
+    required this.dateTime,
   }) : super(key: key);
 
   @override
@@ -74,10 +78,14 @@ class _PostWidgetState extends State<PostWidget> {
           context,
           MaterialPageRoute(
             builder: (context) => PostDetailScreen(
+              postId: widget.postId,
+              author: widget.author,
               title: widget.title,
               description: widget.content,
               imageUrl: widget.imageUrl,
               comments: widget.comments,
+              dateTime:widget.dateTime,
+
             ),
           ),
         );
@@ -170,8 +178,9 @@ class _PostWidgetState extends State<PostWidget> {
                               onTap: _toggleLike,
                               child: Icon(
                                 hasLiked ? Icons.favorite : Icons.favorite_border,
-                                color: Colors.red,
+                                color: hasLiked ? Colors.red : Colors.grey,
                               ),
+
                             ),
                             SizedBox(width: 4),
                             Text(

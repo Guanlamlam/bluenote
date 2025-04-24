@@ -3,6 +3,7 @@ import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../widgets/guanlam/category_button.dart';
 import '../widgets/guanlam/custom_app_bar.dart';
 import '../widgets/guanlam/bottom_nav_bar.dart';
@@ -60,6 +61,63 @@ class _HomeScreenState extends State<HomeScreen> {
     return allPosts.where((post) => post['category'] == selectedCategory).toList();
   }
 
+  Widget _buildSkeletonLoader() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        itemCount: 5, // number of skeletons to show
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image placeholder
+                  Container(
+                    height: 180,
+                    width: double.infinity,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Title placeholder
+                  Container(
+                    height: 14,
+                    width: 200,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Subtitle/content line
+                  Container(
+                    height: 12,
+                    width: double.infinity,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 12,
+                    width: MediaQuery.of(context).size.width * 0.6,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: user == null
           ? Center(child: Text("No user is currently signed in."))
           : isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(child: _buildSkeletonLoader())
           : Column(
         children: [
           Text("Welcome, ${userData['username']}"),
@@ -135,8 +193,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     imageUrl: post['image'][0] ?? 'assets/img.png',
                     initialLikes: post['likes'] ?? 0,
                     comments: post['comments'] ?? [],
+                    dateTime: post['dateTime'],
                     firebaseService: firebaseService,
                     user: user!,
+
                   );
                 },
               ),
