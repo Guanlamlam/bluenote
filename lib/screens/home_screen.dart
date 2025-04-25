@@ -130,78 +130,79 @@ class _HomeScreenState extends State<HomeScreen> {
           ? Center(child: Text("No user is currently signed in."))
           : isLoading
           ? Center(child: _buildSkeletonLoader())
-          : Column(
-        children: [
-          Text("Welcome, ${userData['username']}"),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            margin: const EdgeInsets.symmetric(vertical: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                CategoryButton(
-                  text: 'All',
-                  isSelected: selectedCategory == 'All',
-                  onTap: () {
-                    setState(() {
-                      selectedCategory = 'All';
-                    });
-                  },
-                ),
-                SizedBox(width: 12),
-                CategoryButton(
-                  text: 'Events',
-                  isSelected: selectedCategory == 'Events',
-                  onTap: () {
-                    setState(() {
-                      selectedCategory = 'Events';
-                    });
-                  },
-                ),
-                SizedBox(width: 12),
-                CategoryButton(
-                  text: 'Q&A',
-                  isSelected: selectedCategory == 'Q&A',
-                  onTap: () {
-                    setState(() {
-                      selectedCategory = 'Q&A';
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _refreshPosts,
-              child: posts.isEmpty
-                  ? ListView(
+          : CustomScrollView(
+        slivers: [
+          // Category buttons row
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              margin: const EdgeInsets.symmetric(vertical: 10.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  SizedBox(height: 100),
-                  Center(child: Text("No posts found.")),
+                  CategoryButton(
+                    text: 'All',
+                    isSelected: selectedCategory == 'All',
+                    onTap: () {
+                      setState(() {
+                        selectedCategory = 'All';
+                      });
+                    },
+                  ),
+                  SizedBox(width: 12),
+                  CategoryButton(
+                    text: 'Events',
+                    isSelected: selectedCategory == 'Events',
+                    onTap: () {
+                      setState(() {
+                        selectedCategory = 'Events';
+                      });
+                    },
+                  ),
+                  SizedBox(width: 12),
+                  CategoryButton(
+                    text: 'Q&A',
+                    isSelected: selectedCategory == 'Q&A',
+                    onTap: () {
+                      setState(() {
+                        selectedCategory = 'Q&A';
+                      });
+                    },
+                  ),
                 ],
-              )
-                  : ListView.builder(
-                itemCount: filteredPosts.length,
-                itemBuilder: (context, index) {
-                  final post = filteredPosts[index];
-                  return PostWidget(
-                    postId: post['id'],
-                    author: post['author'],
-                    title: post['title'] ?? 'Untitled Post',
-                    content: post['content'] ?? 'No description',
-                    imageUrl: post['image'][0] ?? 'assets/img.png',
-                    initialLikes: post['likes'] ?? 0,
-                    comments: post['comments'] ?? [],
-                    dateTime: post['dateTime'],
-                    firebaseService: firebaseService,
-                    user: user!,
-
-                  );
-                },
               ),
             ),
           ),
+
+          // ListView with posts
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                final post = filteredPosts[index];
+                return PostWidget(
+                  postId: post['id'],
+                  author: post['author'],
+                  title: post['title'] ?? 'Untitled Post',
+                  content: post['content'] ?? 'No description',
+                  imageUrls: List<String>.from(post['image'] ?? []),
+                  initialLikes: post['likes'] ?? 0,
+                  dateTime: post['dateTime'],
+                  firebaseService: firebaseService,
+                  user: user!,
+                );
+              },
+              childCount: filteredPosts.length,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                SizedBox(height: 48),
+                Center(child: Text('- No more -')),
+                SizedBox(height: 48),
+              ],
+            ),
+          )
         ],
       ),
       floatingActionButton: FloatingActionButton(

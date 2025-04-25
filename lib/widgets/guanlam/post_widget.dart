@@ -1,4 +1,3 @@
-
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,13 +12,11 @@ class PostWidget extends StatefulWidget {
   final String author;
   final String title;
   final String content;
-  final String imageUrl;
+  final List<String> imageUrls;
   final int initialLikes;
-  final List comments;
   final FirebaseService firebaseService;
   final User user;
   final Timestamp dateTime;
-
 
   const PostWidget({
     Key? key,
@@ -27,9 +24,8 @@ class PostWidget extends StatefulWidget {
     required this.author,
     required this.title,
     required this.content,
-    required this.imageUrl,
+    required this.imageUrls,
     required this.initialLikes,
-    required this.comments,
     required this.firebaseService,
     required this.user,
     required this.dateTime,
@@ -82,120 +78,131 @@ class _PostWidgetState extends State<PostWidget> {
               author: widget.author,
               title: widget.title,
               description: widget.content,
-              imageUrl: widget.imageUrl,
-              comments: widget.comments,
-              dateTime:widget.dateTime,
-
+              imageUrls: widget.imageUrls,
+              dateTime: widget.dateTime,
             ),
           ),
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(12.0),
-        child: Container(
-          constraints: BoxConstraints(minHeight: 250),
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.all(Radius.circular(6)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(6),
-                  topRight: Radius.circular(6),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: CachedNetworkImage(
-                    imageUrl: widget.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Shimmer.fromColors(
-                      baseColor: Colors.grey.shade300,
-                      highlightColor: Colors.grey.shade100,
-                      child: Container(
-                        color: Colors.white,
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Icon(Icons.error),
+        margin: const EdgeInsets.all(12.0),
+
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.all(Radius.circular(6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image Section - Dynamic height based on image size
+            widget.imageUrls[0].isNotEmpty
+                ? Container(
+              width: double.infinity,
+              // Dynamically adjust the image container height based on the image's aspect ratio
+              child: CachedNetworkImage(
+                imageUrl: widget.imageUrls[0],
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Shimmer.fromColors(
+                  baseColor: Colors.grey.shade300,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(
+                    color: Colors.white,
                   ),
                 ),
+                errorWidget: (context, url, error) => Icon(Icons.error),
               ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1, // Limit to one line
-                        overflow: TextOverflow.ellipsis, // Add "..." if it overflows
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.transparent,
-                              child: ClipOval(
-                                child: Image.network(
-                                  'https://wallpapers.com/images/featured/cute-profile-picture-s52z1uggme5sj92d.jpg', // you could use post['authorImageUrl'] if you have one
-                                  fit: BoxFit.cover,
-                                  width: 32,
-                                  height: 32,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              widget.author,
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: _toggleLike,
-                              child: Icon(
-                                hasLiked ? Icons.favorite : Icons.favorite_border,
-                                color: hasLiked ? Colors.red : Colors.grey,
-                              ),
+            )
+                : Container(), // Empty container if no image
 
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              likeCount.toString(),
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ],
+            // Text Content Section - Dynamically adjust based on content
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
+                    maxLines: 3,
+                  ),
+                  SizedBox(height: 4),
+
+                  // Content preview (truncated)
+                  widget.content.isEmpty
+                      ? SizedBox() // or any fallback widget
+                      : Text(
+                    widget.content,
+                    style: TextStyle(fontSize: 14),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  )
+
+                ],
               ),
-            ],
-          ),
+            ),
+
+            // Author and Like Section - Adjusts based on space available
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Author Info
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.transparent,
+                        child: ClipOval(
+                          child: Image.network(
+                            'https://wallpapers.com/images/featured/cute-profile-picture-s52z1uggme5sj92d.jpg', // You can use post['authorImageUrl'] if available
+                            fit: BoxFit.cover,
+                            width: 32,
+                            height: 32,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        widget.author,
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+
+                  // Like Button and Count
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _toggleLike,
+                        child: Icon(
+                          hasLiked ? Icons.favorite : Icons.favorite_border,
+                          color: hasLiked ? Colors.red : Colors.grey,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        likeCount.toString(),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

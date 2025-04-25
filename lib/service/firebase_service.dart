@@ -108,7 +108,7 @@ class FirebaseService {
           .collection('posts')
           .doc(postId)
           .collection('comments')
-          .orderBy('likes', descending: true)
+          // .orderBy('likes', descending: true)
           .get();
 
       return snapshot.docs.map((doc) {
@@ -168,6 +168,22 @@ class FirebaseService {
       );
     }
   }
+
+  // In your FirebaseService.dart
+  Future<int> getCommentCount(String postId) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(postId)
+          .collection('comments')
+          .get();
+
+      return querySnapshot.size; // This will return the number of comments
+    } catch (e) {
+      return 0; // Return 0 if there's an error
+    }
+  }
+
 
   Future<void> toggleLikeComment(String postId,String commentId,String uid) async {
     final postCommentRef = FirebaseFirestore.instance.collection('posts').doc(postId).collection('comments').doc(commentId);

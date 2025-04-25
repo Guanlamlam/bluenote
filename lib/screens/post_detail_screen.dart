@@ -1,18 +1,16 @@
 import 'package:bluenote/service/firebase_service.dart';
+import 'package:bluenote/widgets/guanlam/image_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
-
-
+import 'package:photo_view/photo_view.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final String title;
   final String description;
-  final String imageUrl;
-  final List comments;
+  final List<String> imageUrls;
 
   final String postId;
   final String author;
@@ -22,12 +20,11 @@ class PostDetailScreen extends StatefulWidget {
   PostDetailScreen({
     required this.title,
     required this.description,
-    required this.imageUrl,
-    required this.comments,
+    required this.imageUrls,
+
     required this.postId,
     required this.author,
     required this.dateTime,
-
   });
 
   @override
@@ -39,27 +36,50 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   late User? user;
   Map<String, dynamic> userData = {};
 
-  TextEditingController _commentController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
+
+  int _currentPageIndex = 0;
+  int commentCount = 0; // Track the comment count
+
+  // To track the page number (e.g., 1/5, 2/5, etc.)
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentPageIndex = index;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _firebaseService = FirebaseService();
     _loadUserData();
-
+    _fetchCommentCount();
   }
-
-
 
   // Fetch user data asynchronously in initState()
   Future<void> _loadUserData() async {
-    user = _firebaseService.getCurrentUser();  // Assuming getCurrentUser() is async
+    user =
+        _firebaseService.getCurrentUser(); // Assuming getCurrentUser() is async
     if (user != null) {
-      userData = await _firebaseService.getUserData(user!.uid);  // Assuming this returns a List<Map<String, dynamic>>
+      userData = await _firebaseService.getUserData(
+        user!.uid,
+      ); // Assuming this returns a List<Map<String, dynamic>>
     }
   }
 
-  void _showCommentOptions(BuildContext context, Map<String, dynamic> comment, String postId) {
+  // Fetch the comment count
+  Future<void> _fetchCommentCount() async {
+    int count = await _firebaseService.getCommentCount(widget.postId);
+    setState(() {
+      commentCount = count;
+    });
+  }
+
+  void _showCommentOptions(
+    BuildContext context,
+    Map<String, dynamic> comment,
+    String postId,
+  ) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -74,7 +94,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               leading: Icon(Icons.copy, color: Colors.blueAccent),
               title: Text("Copy Comment"),
               onTap: () {
-                Clipboard.setData(ClipboardData(text: comment['comment'] ?? ''));
+                Clipboard.setData(
+                  ClipboardData(text: comment['comment'] ?? ''),
+                );
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Comment copied to clipboard")),
@@ -90,27 +112,35 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 _showDeleteConfirmationDialog(context, postId, comment['id']);
               },
             ),
-
           ],
         );
       },
     );
   }
 
-
-  void _showDeleteConfirmationDialog(BuildContext context, String postId, String commentId) {
+  void _showDeleteConfirmationDialog(
+    BuildContext context,
+    String postId,
+    String commentId,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text("Delete Comment", style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            "Delete Comment",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Text("Are you sure you want to delete this comment?"),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Just close
+                Navigator.of(context).pop();
+                // Just close
               },
               child: Text("Cancel"),
             ),
@@ -118,7 +148,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               onPressed: () {
                 _firebaseService.deleteComment(context, postId, commentId);
                 Navigator.of(context).pop(); // Close after deletion
-                setState(() {}); // Refresh if needed
+                setState(() {
+                  commentCount--;
+                }); // Refresh if needed
               },
               child: Text("Delete", style: TextStyle(color: Colors.redAccent)),
             ),
@@ -128,19 +160,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  @override void dispose() {
+  @override
+  void dispose() {
     // TODO: implement dispose
     super.dispose();
     _commentController.dispose();
-
   }
-
-
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -152,10 +180,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundImage: NetworkImage('https://st3.depositphotos.com/15648834/17930/v/450/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg'), // Admin profile image
+              backgroundImage: NetworkImage(
+                'https://st3.depositphotos.com/15648834/17930/v/450/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg',
+              ), // Admin profile image
             ),
             SizedBox(width: 8),
-            Text(widget.author, style: TextStyle(color: Colors.black, fontSize: 16)),
+            Text(
+              widget.author,
+              style: TextStyle(color: Colors.black, fontSize: 16),
+            ),
           ],
         ),
       ),
@@ -163,21 +196,109 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Post Image
-            Image.network(
-              widget.imageUrl,
-              width: double.infinity,
-              height: 250,
-              fit: BoxFit.cover,
-            ),
+            if (widget.imageUrls[0].isNotEmpty)
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 280, // Or make dynamic later
+                    child: Stack(
+                      children: [
+                        PageView.builder(
+                          itemCount: widget.imageUrls.length,
+                          onPageChanged: _onPageChanged,
+                          itemBuilder: (context, index) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => ImageView(
+                                          imageUrls: widget.imageUrls,
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: InteractiveViewer(
+                                panEnabled: true,
+                                scaleEnabled: true,
+                                minScale: 0.5,
+                                maxScale: 3.0,
+                                child: Image.network(
+                                  widget.imageUrls[index],
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
 
+                        // Top-right index number
+                        if (widget.imageUrls.length > 1)
+                          Positioned(
+                            top: 10,
+                            right: 10,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                '${_currentPageIndex + 1} / ${widget.imageUrls.length}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // Bullet indicators
+                  if (widget.imageUrls.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          widget.imageUrls.length,
+                          (index) => AnimatedContainer(
+                            duration: Duration(milliseconds: 200),
+                            margin: EdgeInsets.symmetric(horizontal: 4),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color:
+                                  _currentPageIndex == index
+                                      ? Theme.of(context).primaryColor
+                                      : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              )
+            else
+              SizedBox(), // If no image
+            //!!!!!!!!!
             // Post Title & Description
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // Image.asset('assets/img.png', width: 20, height: 15), // Malaysia Flag
                   //Title of the post
                   Text(
@@ -194,7 +315,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                   SizedBox(height: 18),
                   Text(
-                    DateFormat('dd-MM-yyyy HH:mm ').format(widget.dateTime.toDate()), // Example timestamp
+                    DateFormat(
+                      'dd-MM-yyyy HH:mm ',
+                    ).format(widget.dateTime.toDate()), // Example timestamp
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -203,6 +326,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
             Divider(),
             // Comment Input Field
+            SizedBox(height: 10,),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              child: Text(
+                '$commentCount comments',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+
+
+            SizedBox(height: 20,),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
               decoration: BoxDecoration(
@@ -211,7 +345,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(backgroundImage: AssetImage('assets/img.png')), // User Avatar
+                  CircleAvatar(
+                    backgroundImage: AssetImage('assets/img.png'),
+                  ), // User Avatar
                   SizedBox(width: 10),
                   Expanded(
                     child: TextField(
@@ -232,7 +368,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         return; // exit early
                       }
 
-
                       await _firebaseService.addComment(
                         postId: widget.postId,
                         userId: user?.uid ?? '',
@@ -242,7 +377,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
                       _commentController.clear(); // ✅ Clear the input
                       FocusScope.of(context).unfocus(); // 👈 hide keyboard
-                      setState(() {}); // ✅ Rebuild the widget to trigger FutureBuilder to refresh
+                      setState(
+                        () {
+                          commentCount++;
+                        },
+                      ); // ✅ Rebuild the widget to trigger FutureBuilder to refresh
                     },
 
                     style: ElevatedButton.styleFrom(
@@ -289,8 +428,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           comment: comment,
                           postId: widget.postId,
                           user: user,
-                          onLongPress: (selectedComment) =>
-                              _showCommentOptions(context, selectedComment, widget.postId),
+                          onLongPress:
+                              (selectedComment) => _showCommentOptions(
+                                context,
+                                selectedComment,
+                                widget.postId,
+                              ),
                         );
                       },
                     ),
@@ -302,21 +445,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 );
               },
             ),
-
-
-
-
-
-
-
-
-
           ],
         ),
       ),
     );
   }
 }
+
 
 
 
@@ -346,7 +481,6 @@ class _CommentTileState extends State<CommentTile> {
   FirebaseService firebaseService = FirebaseService();
   double _iconScale = 1.0;
 
-
   @override
   void initState() {
     super.initState();
@@ -356,13 +490,17 @@ class _CommentTileState extends State<CommentTile> {
   Future<void> _checkIfLiked() async {
     if (widget.user == null) return;
 
-    final likeDoc = await firebaseService.checkIfLiked(widget.postId, widget.comment['id'], widget.user!.uid);
+    final likeDoc = await firebaseService.checkIfLiked(
+      widget.postId,
+      widget.comment['id'],
+      widget.user!.uid,
+    );
 
     setState(() {
       hasLiked = likeDoc;
     });
   }
-  
+
   void highlight() {
     setState(() => isHighlighted = true);
     Future.delayed(Duration(seconds: 2), () {
@@ -380,7 +518,8 @@ class _CommentTileState extends State<CommentTile> {
 
     setState(() {
       hasLiked = !hasLiked;
-      widget.comment['likes'] = (widget.comment['likes'] ?? 0) + (hasLiked ? 1 : -1);
+      widget.comment['likes'] =
+          (widget.comment['likes'] ?? 0) + (hasLiked ? 1 : -1);
     });
 
     // Firestore like toggle
@@ -389,10 +528,7 @@ class _CommentTileState extends State<CommentTile> {
       widget.comment['id'],
       widget.user!.uid,
     );
-
-
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -403,7 +539,8 @@ class _CommentTileState extends State<CommentTile> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: isHighlighted ? Colors.grey.withOpacity(0.1) : Colors.transparent,
+          color:
+              isHighlighted ? Colors.grey.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -428,14 +565,15 @@ class _CommentTileState extends State<CommentTile> {
                   ),
                   SizedBox(height: 2),
 
-
-                  Text(
-                    widget.comment['comment'] ?? '',
-                  ),
+                  Text(widget.comment['comment'] ?? ''),
 
                   SizedBox(height: 2),
                   Text(
-                    widget.comment['timestamp']?.toDate().toString().substring(0, 16) ?? '',
+                    widget.comment['timestamp']?.toDate().toString().substring(
+                          0,
+                          16,
+                        ) ??
+                        '',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -460,17 +598,14 @@ class _CommentTileState extends State<CommentTile> {
                       );
                     },
                   ),
-
-
                 ),
                 SizedBox(width: 4),
                 widget.comment['likes'] == 0 || widget.comment['likes'] == null
                     ? SizedBox.shrink()
                     : Text(
-                        widget.comment['likes'].toString(),
-                        style: TextStyle(fontSize: 14),
-                      ),
-
+                      widget.comment['likes'].toString(),
+                      style: TextStyle(fontSize: 14),
+                    ),
               ],
             ),
           ],
@@ -479,4 +614,3 @@ class _CommentTileState extends State<CommentTile> {
     );
   }
 }
-
