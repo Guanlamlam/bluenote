@@ -1,4 +1,3 @@
-
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -26,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = true;
 
   String selectedCategory = 'All';
-
 
   @override
   void initState() {
@@ -56,9 +54,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  List<Map<String, dynamic>> _filterPostsByCategory(List<Map<String, dynamic>> allPosts) {
+  List<Map<String, dynamic>> _filterPostsByCategory(
+    List<Map<String, dynamic>> allPosts,
+  ) {
     if (selectedCategory == 'All') return allPosts;
-    return allPosts.where((post) => post['category'] == selectedCategory).toList();
+    return allPosts
+        .where((post) => post['category'] == selectedCategory)
+        .toList();
   }
 
   Widget _buildSkeletonLoader() {
@@ -69,7 +71,10 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: 5, // number of skeletons to show
         itemBuilder: (context, index) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -88,11 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
 
                   // Title placeholder
-                  Container(
-                    height: 14,
-                    width: 200,
-                    color: Colors.white,
-                  ),
+                  Container(height: 14, width: 200, color: Colors.white),
                   const SizedBox(height: 8),
 
                   // Subtitle/content line
@@ -116,9 +117,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     final filteredPosts = _filterPostsByCategory(posts);
@@ -126,85 +124,86 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: CustomAppBar(),
-      body: user == null
-          ? Center(child: Text("No user is currently signed in."))
-          : isLoading
-          ? Center(child: _buildSkeletonLoader())
-          : CustomScrollView(
-        slivers: [
-          // Category buttons row
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              margin: const EdgeInsets.symmetric(vertical: 10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  CategoryButton(
-                    text: 'All',
-                    isSelected: selectedCategory == 'All',
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = 'All';
-                      });
-                    },
-                  ),
-                  SizedBox(width: 12),
-                  CategoryButton(
-                    text: 'Events',
-                    isSelected: selectedCategory == 'Events',
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = 'Events';
-                      });
-                    },
-                  ),
-                  SizedBox(width: 12),
-                  CategoryButton(
-                    text: 'Q&A',
-                    isSelected: selectedCategory == 'Q&A',
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = 'Q&A';
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
+      body:
+          user == null
+              ? Center(child: Text("No user is currently signed in."))
+              : isLoading
+              ? Center(child: _buildSkeletonLoader())
+              : RefreshIndicator(
+                onRefresh: _refreshPosts,
+                child: CustomScrollView(
+                  slivers: [
+                    // Category buttons row
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        margin: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            CategoryButton(
+                              text: 'All',
+                              isSelected: selectedCategory == 'All',
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = 'All';
+                                });
+                              },
+                            ),
+                            SizedBox(width: 12),
+                            CategoryButton(
+                              text: 'Events',
+                              isSelected: selectedCategory == 'Events',
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = 'Events';
+                                });
+                              },
+                            ),
+                            SizedBox(width: 12),
+                            CategoryButton(
+                              text: 'Q&A',
+                              isSelected: selectedCategory == 'Q&A',
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = 'Q&A';
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
 
-          // ListView with posts
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                final post = filteredPosts[index];
-                return PostWidget(
-                  postId: post['id'],
-                  author: post['author'],
-                  title: post['title'] ?? 'Untitled Post',
-                  content: post['content'] ?? 'No description',
-                  imageUrls: List<String>.from(post['image'] ?? []),
-                  initialLikes: post['likes'] ?? 0,
-                  dateTime: post['dateTime'],
-                  firebaseService: firebaseService,
-                  user: user!,
-                );
-              },
-              childCount: filteredPosts.length,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                SizedBox(height: 48),
-                Center(child: Text('- No more -')),
-                SizedBox(height: 48),
-              ],
-            ),
-          )
-        ],
-      ),
+                    // ListView with posts
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final post = filteredPosts[index];
+                        return PostWidget(
+                          postId: post['id'],
+                          author: post['author'],
+                          title: post['title'] ?? 'Untitled Post',
+                          content: post['content'] ?? 'No description',
+                          imageUrls: List<String>.from(post['image'] ?? []),
+                          initialLikes: post['likes'] ?? 0,
+                          dateTime: post['dateTime'],
+                          firebaseService: firebaseService,
+                          user: user!,
+                        );
+                      }, childCount: filteredPosts.length),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Column(
+                        children: [
+                          SizedBox(height: 48),
+                          Center(child: Text('- No more -')),
+                          SizedBox(height: 48),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Theme.of(context).primaryColor,
         onPressed: () {

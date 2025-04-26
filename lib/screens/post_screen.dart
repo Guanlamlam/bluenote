@@ -171,23 +171,45 @@ class _PostScreenState extends State<PostScreen> {
                   }
 
                   try {
+                    // 1. Initialize an empty list for image URLs
+                    List<String> imageUrls = [];
+
+                    // 2. Only attempt to upload if there are images selected
+                    if (_selectedImages.isNotEmpty) {
+                      for (File imageFile in _selectedImages) {
+                        final imageUrl = await _firebaseService.uploadToCloudinary(imageFile);
+                        if (imageUrl != null) {
+                          imageUrls.add(imageUrl);
+                        }
+                      }
+                    }
+
+                    // 3. If no images are uploaded, make sure imageUrls contains [""].
+                    if (imageUrls.isEmpty) {
+                      imageUrls = [""];  // Assign [""] if no image URLs are added
+                    }
+
+                    // 4. Upload post data + image URLs to Firebase
                     await _firebaseService.uploadPost(
                       title: _titleController.text.trim(),
                       content: _contentController.text.trim(),
                       category: selectedCategory,
+                      imageUrls: imageUrls, // Pass the list of image URLs
                     );
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Post uploaded successfully!')),
                     );
 
-                    Navigator.pop(context); // Go back after posting
+                    Navigator.pop(context);  // Go back after posting
                   } catch (e) {
+                    print(e);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Failed to upload post.')),
                     );
                   }
                 },
+
 
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF203980), // Match button color

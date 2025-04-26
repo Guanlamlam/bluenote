@@ -79,6 +79,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     BuildContext context,
     Map<String, dynamic> comment,
     String postId,
+    String userId,
   ) {
     showModalBottomSheet(
       context: context,
@@ -90,28 +91,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: Icon(Icons.copy, color: Colors.blueAccent),
-              title: Text("Copy Comment"),
-              onTap: () {
-                Clipboard.setData(
-                  ClipboardData(text: comment['comment'] ?? ''),
-                );
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Comment copied to clipboard")),
-                );
-              },
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ListTile(
+                leading: Icon(Icons.copy, color: Colors.black),
+                title: Text("Copy"),
+                onTap: () {
+                  Clipboard.setData(
+                    ClipboardData(text: comment['comment'] ?? ''),
+                  );
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Comment copied to clipboard")),
+                  );
+                },
+              ),
             ),
             //If comment is created by yourself, can deleted
-            ListTile(
-              leading: Icon(Icons.delete_forever, color: Colors.redAccent),
-              title: Text("Delete Comment"),
-              onTap: () {
-                Navigator.pop(context); // Close bottom sheet first
-                _showDeleteConfirmationDialog(context, postId, comment['id']);
-              },
-            ),
+            if (comment['userId'] == userId)
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ListTile(
+                  leading: Icon(Icons.delete_forever, color: Colors.redAccent),
+                  title: Text(
+                    "Delete",
+                    style: TextStyle(
+                      color: Colors.red,
+                    ),
+                  ),
+
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet first
+                    _showDeleteConfirmationDialog(context, postId, comment['id']);
+                  },
+                ),
+              ),
           ],
         );
       },
@@ -128,6 +142,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -326,7 +341,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
             Divider(),
             // Comment Input Field
-            SizedBox(height: 10,),
+            SizedBox(height: 10),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
               child: Text(
@@ -335,8 +350,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
 
-
-            SizedBox(height: 20,),
+            SizedBox(height: 20),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
               decoration: BoxDecoration(
@@ -433,6 +447,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 context,
                                 selectedComment,
                                 widget.postId,
+                                user!.uid,
                               ),
                         );
                       },
@@ -451,10 +466,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 }
-
-
-
-
 
 class CommentTile extends StatefulWidget {
   final Map<String, dynamic> comment;
@@ -576,6 +587,7 @@ class _CommentTileState extends State<CommentTile> {
                         '',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
+                  //Testing
                 ],
               ),
             ),

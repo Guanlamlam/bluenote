@@ -1,6 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
+
 
 class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -49,6 +56,7 @@ class FirebaseService {
     required String title,
     String? content,
     required String category,
+    List<String>? imageUrls,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -65,10 +73,45 @@ class FirebaseService {
       'authorUid': user.uid,
       'dateTime': Timestamp.now(),
       'likes': 0,
-      'image':[""],
+      'image':imageUrls,
+
     });
   }
 
+
+  Future<String?> uploadToCloudinary(File imageFile) async {
+    final String cloudinaryUrl = 'https://api.cloudinary.com/v1_1/diobtnw7s/image/upload';
+    final String uploadPreset = 'bluenote';
+
+    try {
+      final mimeType = lookupMimeType(imageFile.path);
+      final mimeSplit = mimeType?.split('/');
+
+      var request = http.MultipartRequest('POST', Uri.parse(cloudinaryUrl));
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: mimeSplit != null
+            ? MediaType(mimeSplit[0], mimeSplit[1])
+            : MediaType('image', 'jpeg'), // fallback to jpeg
+      ));
+      request.fields['upload_preset'] = uploadPreset;
+
+      var response = await request.send();
+      final resBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final data = json.decode(resBody);
+        return data['secure_url'];
+      } else {
+        print("❌ Upload failed: $resBody");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Exception: $e");
+      return null;
+    }
+  }
 
 
 
