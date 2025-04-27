@@ -4,13 +4,13 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 
-Future<void> _requestPermissions() async {
-  await [
-    Permission.camera,
-    Permission.photos,
-    Permission.storage,
-  ].request();
-}
+// Future<void> _requestPermissions() async {
+//   await [
+//     Permission.camera,
+//     Permission.photos,
+//     Permission.storage,
+//   ].request();
+// }
 
 class PostScreen extends StatefulWidget {
   @override
@@ -18,14 +18,12 @@ class PostScreen extends StatefulWidget {
 }
 
 class _PostScreenState extends State<PostScreen> {
-  TextEditingController _titleController = TextEditingController();
-  TextEditingController _contentController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _contentController = TextEditingController();
   String selectedCategory = "Events"; // Default selected category
 
   final ImagePicker _picker = ImagePicker();
-  List<File> _selectedImages = [];
-
-  FirebaseService _firebaseService = FirebaseService();
+  final List<File> _selectedImages = [];
 
 
   Future<void> _pickImage(ImageSource source) async {
@@ -70,6 +68,14 @@ class _PostScreenState extends State<PostScreen> {
   }
 
   @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -91,31 +97,47 @@ class _PostScreenState extends State<PostScreen> {
                   padding: const EdgeInsets.only(right: 8.0),
                   child: Stack(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          image,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedImages.remove(image);
-                            });
-                          },
-                          child: CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.white,
-                            child: Icon(Icons.close, size: 14, color: Colors.black),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              image,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            top: -5,
+                            right: -5,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedImages.remove(image);
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2), // subtle drop shadow
+                                    ),
+                                  ],
+                                ),
+                                padding: EdgeInsets.all(2),
+                                child: Icon(Icons.close, size: 14, color: Colors.black),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+
                     ],
                   ),
                 )),
@@ -165,7 +187,7 @@ class _PostScreenState extends State<PostScreen> {
                 onPressed: () async {
                   if (_titleController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Please fill in all fields.')),
+                      SnackBar(content: Text('Please fill in the title fields.')),
                     );
                     return;
                   }
@@ -177,7 +199,7 @@ class _PostScreenState extends State<PostScreen> {
                     // 2. Only attempt to upload if there are images selected
                     if (_selectedImages.isNotEmpty) {
                       for (File imageFile in _selectedImages) {
-                        final imageUrl = await _firebaseService.uploadToCloudinary(imageFile);
+                        final imageUrl = await FirebaseService.instance.uploadToCloudinary(imageFile);
                         if (imageUrl != null) {
                           imageUrls.add(imageUrl);
                         }
@@ -190,7 +212,7 @@ class _PostScreenState extends State<PostScreen> {
                     }
 
                     // 4. Upload post data + image URLs to Firebase
-                    await _firebaseService.uploadPost(
+                    await FirebaseService.instance.uploadPost(
                       title: _titleController.text.trim(),
                       content: _contentController.text.trim(),
                       category: selectedCategory,

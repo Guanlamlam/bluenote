@@ -8,8 +8,13 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
-
 class FirebaseService {
+  // Singleton instance
+  static final FirebaseService instance = FirebaseService._();
+
+  // Private constructor
+  FirebaseService._();
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -18,12 +23,6 @@ class FirebaseService {
     return _auth.currentUser;
   }
 
-
-
-
-
-
-  // Fetch user document data from Firestore
   Future<Map<String, dynamic>> getUserData(String uid) async {
     try {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
@@ -37,20 +36,32 @@ class FirebaseService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getPosts() async {
+  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 5}) async {
     try {
-      QuerySnapshot snapshot =
-      await FirebaseFirestore.instance.collection('posts').orderBy('dateTime', descending: true).get();
+      Query query = _firestore
+          .collection('posts')
+          .orderBy('dateTime', descending: true)
+          .limit(limit);
+
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      QuerySnapshot snapshot = await query.get();
 
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id; // Add the document ID to the post data (field)
+        data['id'] = doc.id;
+        data['snapshot'] = doc; // Store snapshot for pagination
         return data;
       }).toList();
     } catch (e) {
+      print("Error fetching paginated posts: $e");
       return [];
     }
   }
+
+
 
   Future<void> uploadPost({
     required String title,
@@ -61,7 +72,6 @@ class FirebaseService {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Fetch display name from Firestore
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final authorName = userDoc.data()?['username'] ?? 'Anonymous';
 
@@ -73,11 +83,9 @@ class FirebaseService {
       'authorUid': user.uid,
       'dateTime': Timestamp.now(),
       'likes': 0,
-      'image':imageUrls,
-
+      'image': imageUrls,
     });
   }
-
 
   Future<String?> uploadToCloudinary(File imageFile) async {
     final String cloudinaryUrl = 'https://api.cloudinary.com/v1_1/diobtnw7s/image/upload';
@@ -93,7 +101,7 @@ class FirebaseService {
         imageFile.path,
         contentType: mimeSplit != null
             ? MediaType(mimeSplit[0], mimeSplit[1])
-            : MediaType('image', 'jpeg'), // fallback to jpeg
+            : MediaType('image', 'jpeg'),
       ));
       request.fields['upload_preset'] = uploadPreset;
 
@@ -113,29 +121,23 @@ class FirebaseService {
     }
   }
 
-
-
   Future<void> toggleLike(String postId, String uid) async {
-    final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+    final postRef = _firestore.collection('posts').doc(postId);
     final likeRef = postRef.collection('likes').doc(uid);
 
     final doc = await likeRef.get();
 
     if (doc.exists) {
-      // 👎 Unlike
       await likeRef.delete();
       await postRef.update({'likes': FieldValue.increment(-1)});
     } else {
-      // 👍 Like
       await likeRef.set({'likedAt': FieldValue.serverTimestamp()});
       await postRef.update({'likes': FieldValue.increment(1)});
     }
   }
-  
-  
 
   Future<bool> hasUserLiked(String postId, String uid) async {
-    final doc = await FirebaseFirestore.instance
+    final doc = await _firestore
         .collection('posts')
         .doc(postId)
         .collection('likes')
@@ -144,19 +146,17 @@ class FirebaseService {
     return doc.exists;
   }
 
-  //Comment read
   Future<List<Map<String, dynamic>>> getComments(String postId) async {
     try {
       QuerySnapshot snapshot = await _firestore
           .collection('posts')
           .doc(postId)
           .collection('comments')
-          // .orderBy('likes', descending: true)
           .get();
 
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id; // Optional: include comment ID
+        data['id'] = doc.id;
         return data;
       }).toList();
     } catch (e) {
@@ -164,8 +164,6 @@ class FirebaseService {
     }
   }
 
-
-  //Comment add
   Future<void> addComment({
     required String postId,
     required String userId,
@@ -187,10 +185,8 @@ class FirebaseService {
     });
   }
 
-  //Comment delete
   Future<void> deleteComment(BuildContext context, String postId, String commentId) async {
     try {
-      // Delete the comment from the comments sub-collection under the post
       await _firestore
           .collection('posts')
           .doc(postId)
@@ -198,56 +194,49 @@ class FirebaseService {
           .doc(commentId)
           .delete();
 
-      // Optionally, you can refresh the UI after deletion
-      // _loadComments(); // if you're using this method for reloading comments
-
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Comment deleted successfully"))
-      );
+          SnackBar(content: Text("Comment deleted successfully")));
     } catch (e) {
-      // Show error message in case of failure
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to delete comment: $e"))
-      );
+          SnackBar(content: Text("Failed to delete comment: $e")));
     }
   }
 
-  // In your FirebaseService.dart
   Future<int> getCommentCount(String postId) async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
+      final querySnapshot = await _firestore
           .collection('posts')
           .doc(postId)
           .collection('comments')
           .get();
 
-      return querySnapshot.size; // This will return the number of comments
+      return querySnapshot.size;
     } catch (e) {
-      return 0; // Return 0 if there's an error
+      return 0;
     }
   }
 
-
-  Future<void> toggleLikeComment(String postId,String commentId,String uid) async {
-    final postCommentRef = FirebaseFirestore.instance.collection('posts').doc(postId).collection('comments').doc(commentId);
-    final likeRef = postCommentRef.collection('likes').doc(uid);
+  Future<void> toggleLikeComment(String postId, String commentId, String uid) async {
+    final commentRef = _firestore
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId);
+    final likeRef = commentRef.collection('likes').doc(uid);
 
     final doc = await likeRef.get();
 
-    //actually this is wrong if the user has been liked it and click again should be delete , and like -1, as other will also like
     if (doc.exists) {
-      // 👎 Unlike
       await likeRef.delete();
-      await postCommentRef.update({'likes': FieldValue.increment(-1)});
+      await commentRef.update({'likes': FieldValue.increment(-1)});
     } else {
-      // 👍 Like
       await likeRef.set({'likedAt': FieldValue.serverTimestamp()});
-      await postCommentRef.update({'likes': FieldValue.increment(1)});
+      await commentRef.update({'likes': FieldValue.increment(1)});
     }
   }
 
   Future<bool> checkIfLiked(String postId, String commentId, String uid) async {
-    final likeDoc = await FirebaseFirestore.instance
+    final likeDoc = await _firestore
         .collection('posts')
         .doc(postId)
         .collection('comments')
@@ -258,6 +247,87 @@ class FirebaseService {
 
     return likeDoc.exists;
   }
+
+
+  Future<void> addNotification({
+    required String targetUid,
+    required String username,
+    required String message,
+    String? profileImage,
+    String? postId,
+    String? postThumbnail,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(targetUid).collection('notifications').add({
+        'username': username,
+        'message': message,
+        'profileImage': profileImage ?? '',
+        'postId': postId ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+        'postThumbnail': postThumbnail,
+        'viewed': false,
+      });
+    } catch (e) {
+      debugPrint('Failed to add notification: $e'); // use debugPrint for better Flutter practice
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getNotifications(String uid) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      debugPrint('Failed to fetch notifications: $e');
+      return [];
+    }
+  }
+
+  Future<void> deleteNotification(String uid, String notificationId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .doc(notificationId)
+          .delete();
+    } catch (e) {
+      debugPrint('Failed to delete notification: $e');
+    }
+  }
+
+  Future<void> markNotificationAsViewed(String uid, String notificationId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'viewed': true});
+    } catch (e) {
+      debugPrint('❌ Failed to mark notification as viewed: $e');
+    }
+  }
+
+  Stream<int> getUnreadNotificationCountStream(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('viewed', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
 
 
 

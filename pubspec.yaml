@@ -50,6 +50,19 @@ dependencies:
   intl: ^0.20.2
   photo_view: ^0.15.0
   mime: ^2.0.0 #it used for detects the MIME type based on the file extension
+  shared_preferences: ^2.5.3 #for cache the username after login
+
+  firebase_messaging: ^15.2.5 #for notifications
+  #flutter_local_notifications: ^19.1.0 #local notification popup
+  flutter_native_splash: ^2.4.6
+  googleapis_auth: ^2.0.0 #for Service Account Authentication
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/app_icon.png
+  android: true
+  ios: true
+
 
 
 
@@ -86,6 +99,8 @@ flutter:
      - assets/tarumt_logo.png
      - assets/img.png
      - assets/default-profile.jpg
+     - assets/app_icon.png
+     - assets/service-account.json
 
   #   - images/a_dot_ham.jpeg
 

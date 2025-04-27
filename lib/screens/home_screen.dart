@@ -1,6 +1,7 @@
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../widgets/guanlam/category_button.dart';
@@ -18,7 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late FirebaseService firebaseService;
+
   late User? user;
   Map<String, dynamic> userData = {};
   List<Map<String, dynamic>> posts = [];
@@ -26,29 +27,102 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String selectedCategory = 'All';
 
+  ///!!!
+  bool isFetchingMore = false;
+  bool hasMore = true;
+  DocumentSnapshot? lastDoc;
+  final ScrollController _scrollController = ScrollController();
+
+
   @override
   void initState() {
     super.initState();
-    firebaseService = FirebaseService();
-    user = firebaseService.getCurrentUser();
+    user = FirebaseService.instance.getCurrentUser();
     if (user != null) {
       _loadInitialData(user!.uid);
     }
+    requestPermission();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        _loadMorePosts();
+      }
+    });
+
+
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadInitialData(String uid) async {
-    final fetchedUserData = await firebaseService.getUserData(uid);
-    final fetchedPosts = await firebaseService.getPosts();
+    final fetchedUserData = await FirebaseService.instance.getUserData(uid);
+    final fetchedPosts = await FirebaseService.instance.getPosts();
+
+    if (fetchedPosts.isNotEmpty) {
+      lastDoc = fetchedPosts.last['snapshot'];
+    }
+
     setState(() {
       userData = fetchedUserData;
       posts = fetchedPosts;
       isLoading = false;
     });
   }
+  Future<void> _loadMorePosts() async {
+    if (isFetchingMore || !hasMore) return;
+
+    setState(() => isFetchingMore = true);
+
+    final fetchedPosts = await FirebaseService.instance.getPosts(lastDoc: lastDoc);
+
+    if (fetchedPosts.isNotEmpty) {
+      lastDoc = fetchedPosts.last['snapshot'];
+      setState(() {
+        posts.addAll(fetchedPosts);
+      });
+    } else {
+      setState(() => hasMore = false);
+    }
+
+    setState(() => isFetchingMore = false);
+  }
+
+
+
+
+  Future<void> requestPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('User granted permission');
+    } else {
+      print('User declined or has not accepted permission');
+    }
+  }
+
+
+  // Future<void> _loadInitialData(String uid) async {
+  //   final fetchedUserData = await FirebaseService.instance.getUserData(uid);
+  //   final fetchedPosts = await FirebaseService.instance.getPosts();
+  //   setState(() {
+  //     userData = fetchedUserData;
+  //     posts = fetchedPosts;
+  //     isLoading = false;
+  //   });
+  // }
 
   Future<void> _refreshPosts() async {
     if (user == null) return;
-    final fetchedPosts = await firebaseService.getPosts();
+    final fetchedPosts = await FirebaseService.instance.getPosts();
     setState(() {
       posts = fetchedPosts;
     });
@@ -132,6 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : RefreshIndicator(
                 onRefresh: _refreshPosts,
                 child: CustomScrollView(
+                  controller: _scrollController,
                   slivers: [
                     // Category buttons row
                     SliverToBoxAdapter(
@@ -181,26 +256,35 @@ class _HomeScreenState extends State<HomeScreen> {
                         final post = filteredPosts[index];
                         return PostWidget(
                           postId: post['id'],
-                          author: post['author'],
+                          author: post['author'] ?? 'Unknown',
+                          authorUid: post['authorUid'] ?? '',
                           title: post['title'] ?? 'Untitled Post',
                           content: post['content'] ?? 'No description',
-                          imageUrls: List<String>.from(post['image'] ?? []),
+                          imageUrls: (post['image'] as List?)?.whereType<String>().toList() ?? [],
                           initialLikes: post['likes'] ?? 0,
                           dateTime: post['dateTime'],
-                          firebaseService: firebaseService,
                           user: user!,
                         );
+
                       }, childCount: filteredPosts.length),
                     ),
                     SliverToBoxAdapter(
                       child: Column(
                         children: [
-                          SizedBox(height: 48),
-                          Center(child: Text('- No more -')),
-                          SizedBox(height: 48),
+                          if (isFetchingMore)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: CircularProgressIndicator(),
+                            )
+                          else if (!hasMore)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Text('- No more -'),
+                            ),
                         ],
                       ),
                     ),
+
                   ],
                 ),
               ),

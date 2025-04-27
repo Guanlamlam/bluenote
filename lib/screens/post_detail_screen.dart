@@ -1,5 +1,6 @@
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/image_view.dart';
+import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,7 @@ class PostDetailScreen extends StatefulWidget {
 
   final String postId;
   final String author;
-
+  final String authorUid;
   final Timestamp dateTime;
 
   PostDetailScreen({
@@ -24,6 +25,7 @@ class PostDetailScreen extends StatefulWidget {
 
     required this.postId,
     required this.author,
+    required this.authorUid,
     required this.dateTime,
   });
 
@@ -32,14 +34,19 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  late FirebaseService _firebaseService;
-  late User? user;
-  Map<String, dynamic> userData = {};
+  // late User? user;
+  // Map<String, dynamic> userData = {};
 
   final TextEditingController _commentController = TextEditingController();
 
   int _currentPageIndex = 0;
   int commentCount = 0; // Track the comment count
+
+  String? userId;
+  String? userName;
+  String? profilePicture;
+
+  Map<String, dynamic>? authorData;
 
   // To track the page number (e.g., 1/5, 2/5, etc.)
   void _onPageChanged(int index) {
@@ -51,25 +58,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _firebaseService = FirebaseService();
     _loadUserData();
+    _loadAuthorProfile();
     _fetchCommentCount();
   }
 
   // Fetch user data asynchronously in initState()
   Future<void> _loadUserData() async {
-    user =
-        _firebaseService.getCurrentUser(); // Assuming getCurrentUser() is async
-    if (user != null) {
-      userData = await _firebaseService.getUserData(
-        user!.uid,
-      ); // Assuming this returns a List<Map<String, dynamic>>
-    }
+    // Retrieve cached user info
+    final userData = await getCachedUserData();
+    userId = userData['userId'];
+    userName = userData['username'];
+    profilePicture = userData['profilePictureUrl'];
+  }
+
+  Future<void> _loadAuthorProfile() async{
+     authorData = await FirebaseService.instance.getUserData(widget.authorUid);
   }
 
   // Fetch the comment count
   Future<void> _fetchCommentCount() async {
-    int count = await _firebaseService.getCommentCount(widget.postId);
+    int count = await FirebaseService.instance.getCommentCount(widget.postId);
     setState(() {
       commentCount = count;
     });
@@ -161,7 +170,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
             TextButton(
               onPressed: () {
-                _firebaseService.deleteComment(context, postId, commentId);
+                FirebaseService.instance.deleteComment(context, postId, commentId);
                 Navigator.of(context).pop(); // Close after deletion
                 setState(() {
                   commentCount--;
@@ -195,8 +204,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundImage: NetworkImage(
-                'https://st3.depositphotos.com/15648834/17930/v/450/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg',
+              backgroundImage: NetworkImage( authorData?['profilePictureUrl'] ??
+                'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
               ), // Admin profile image
             ),
             SizedBox(width: 8),
@@ -360,7 +369,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundImage: AssetImage('assets/img.png'),
+                    backgroundImage: NetworkImage(profilePicture ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'),
                   ), // User Avatar
                   SizedBox(width: 10),
                   Expanded(
@@ -382,10 +391,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         return; // exit early
                       }
 
-                      await _firebaseService.addComment(
+                      await FirebaseService.instance.addComment(
                         postId: widget.postId,
-                        userId: user?.uid ?? '',
-                        username: userData['username'],
+                        userId: userId ?? '',
+                        username: userName ?? '',
                         comment: _commentController.text.trim(),
                       );
 
@@ -412,7 +421,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             // Comment Section
             // ⬇️ Comments Section with FutureBuilder
             FutureBuilder<List<Map<String, dynamic>>>(
-              future: _firebaseService.getComments(widget.postId),
+              future: FirebaseService.instance.getComments(widget.postId),
               builder: (context, snapshot) {
                 // No need this code it will occur reloading when post a comments and trying to delete
                 // if (snapshot.connectionState == ConnectionState.waiting) {
@@ -441,13 +450,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         return CommentTile(
                           comment: comment,
                           postId: widget.postId,
-                          user: user,
+                          userId: userId ?? '',
                           onLongPress:
                               (selectedComment) => _showCommentOptions(
                                 context,
                                 selectedComment,
                                 widget.postId,
-                                user!.uid,
+                                userId ?? '',
                               ),
                         );
                       },
@@ -471,13 +480,15 @@ class CommentTile extends StatefulWidget {
   final Map<String, dynamic> comment;
   final String postId;
   final Function(Map<String, dynamic>) onLongPress;
-  final User? user;
+  // final User? user;
+  final String userId;
 
   const CommentTile({
     required this.comment,
     required this.postId,
     required this.onLongPress,
-    required this.user,
+    // required this.user,
+    required this.userId,
     super.key,
   });
 
@@ -488,8 +499,6 @@ class CommentTile extends StatefulWidget {
 class _CommentTileState extends State<CommentTile> {
   bool isHighlighted = false;
   bool hasLiked = false;
-
-  FirebaseService firebaseService = FirebaseService();
   double _iconScale = 1.0;
 
   @override
@@ -499,12 +508,12 @@ class _CommentTileState extends State<CommentTile> {
   }
 
   Future<void> _checkIfLiked() async {
-    if (widget.user == null) return;
+    // if (widget.userId == null) return;
 
-    final likeDoc = await firebaseService.checkIfLiked(
+    final likeDoc = await FirebaseService.instance.checkIfLiked(
       widget.postId,
       widget.comment['id'],
-      widget.user!.uid,
+      widget.userId,
     );
 
     setState(() {
@@ -534,10 +543,10 @@ class _CommentTileState extends State<CommentTile> {
     });
 
     // Firestore like toggle
-    await firebaseService.toggleLikeComment(
+    await FirebaseService.instance.toggleLikeComment(
       widget.postId,
       widget.comment['id'],
-      widget.user!.uid,
+      widget.userId,
     );
   }
 
@@ -558,11 +567,23 @@ class _CommentTileState extends State<CommentTile> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              backgroundImage: NetworkImage(
-                'https://st3.depositphotos.com/15648834/17930/v/450/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg',
-              ),
+
+            FutureBuilder<Map<String, dynamic>?>(
+              future: FirebaseService.instance.getUserData(widget.comment['userId']),
+              builder: (context, snapshot) {
+                final userData = snapshot.data;
+                final profileUrl = userData?['profilePictureUrl'] ??
+                    'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg';
+
+                return CircleAvatar(
+                  backgroundImage: NetworkImage(profileUrl),
+                );
+              },
             ),
+
+
+
+
             SizedBox(width: 10),
 
             //Wrap the Column in Expanded to fix width issues

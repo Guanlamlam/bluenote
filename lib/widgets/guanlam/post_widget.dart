@@ -1,4 +1,6 @@
 import 'package:bluenote/screens/post_detail_screen.dart';
+import 'package:bluenote/service/notification_service.dart';
+import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -10,11 +12,11 @@ import 'package:shimmer/shimmer.dart';
 class PostWidget extends StatefulWidget {
   final String postId;
   final String author;
+  final String authorUid;
   final String title;
   final String content;
   final List<String> imageUrls;
   final int initialLikes;
-  final FirebaseService firebaseService;
   final User user;
   final Timestamp dateTime;
 
@@ -22,11 +24,11 @@ class PostWidget extends StatefulWidget {
     Key? key,
     required this.postId,
     required this.author,
+    required this.authorUid,
     required this.title,
     required this.content,
     required this.imageUrls,
     required this.initialLikes,
-    required this.firebaseService,
     required this.user,
     required this.dateTime,
   }) : super(key: key);
@@ -39,6 +41,8 @@ class _PostWidgetState extends State<PostWidget> {
   late bool hasLiked;
   late int likeCount;
 
+  Map<String, dynamic>? authorData;
+
   @override
   void initState() {
     super.initState();
@@ -46,25 +50,87 @@ class _PostWidgetState extends State<PostWidget> {
     likeCount = widget.initialLikes;
 
     _checkIfUserLiked();
+    _loadAuthorData();
+  }
+
+  Future<void> _loadAuthorData() async {
+    try {
+      final data = await FirebaseService.instance.getUserData(widget.authorUid);
+      setState(() {
+        authorData = data;
+      });
+    } catch (e) {
+      print("Failed to fetch author data: $e");
+    }
   }
 
   Future<void> _checkIfUserLiked() async {
-    bool userHasLiked = await widget.firebaseService.hasUserLiked(widget.postId, widget.user.uid);
+    bool userHasLiked = await FirebaseService.instance.hasUserLiked(widget.postId, widget.user.uid);
     setState(() {
       hasLiked = userHasLiked;
     });
   }
 
-  Future<void> _toggleLike() async {
-    // Toggle like on Firestore
-    await widget.firebaseService.toggleLike(widget.postId, widget.user.uid);
 
-    // Update local state
-    setState(() {
-      hasLiked = !hasLiked;
-      likeCount = hasLiked ? likeCount + 1 : likeCount - 1;
-    });
+
+  Future<void> _toggleLike() async {
+    try {
+      // Toggle like on Firestore
+      await FirebaseService.instance.toggleLike(widget.postId, widget.user.uid);
+
+      // Update local state
+      setState(() {
+        hasLiked = !hasLiked;
+        likeCount = hasLiked ? likeCount + 1 : likeCount - 1;
+      });
+
+      // Send notification only when user likes the post (not when unliking)
+      if (hasLiked) {
+        // Get the post author's FCM token
+        Map<String, dynamic> authorFCM = await FirebaseService.instance.getUserData(widget.authorUid);
+        String authorFcmToken = authorFCM['fcmToken'];
+
+        // Retrieve cached user info
+        final userData = await getCachedUserData();
+        String? userId = userData['userId'];
+        String? username = userData['username'];
+        String? profilePicture = userData['profilePictureUrl'];
+
+        // Send notification to the post author
+        if (authorFcmToken.isNotEmpty && username != null) {
+          NotificationService.sendPushNotification(
+              targetToken: authorFcmToken,
+              title: "$username",
+              body: "Liked your post"
+          );
+
+          try {
+            await FirebaseService.instance.addNotification(
+              targetUid: widget.authorUid,
+              username: username,
+              message: 'Liked your post',
+              profileImage: profilePicture,
+              postId: widget.postId,
+              postThumbnail: widget.imageUrls[0],
+
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to send notification')),
+            );
+          }
+
+        }
+      }
+
+    } catch (e) {
+      // Show error to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error toggling like: $e')),
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +142,7 @@ class _PostWidgetState extends State<PostWidget> {
             builder: (context) => PostDetailScreen(
               postId: widget.postId,
               author: widget.author,
+              authorUid: widget.authorUid,
               title: widget.title,
               description: widget.content,
               imageUrls: widget.imageUrls,
@@ -167,7 +234,7 @@ class _PostWidgetState extends State<PostWidget> {
                         backgroundColor: Colors.transparent,
                         child: ClipOval(
                           child: Image.network(
-                            'https://wallpapers.com/images/featured/cute-profile-picture-s52z1uggme5sj92d.jpg', // You can use post['authorImageUrl'] if available
+                            authorData?['profilePictureUrl'] ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg', // You can use post['authorImageUrl'] if available
                             fit: BoxFit.cover,
                             width: 32,
                             height: 32,
