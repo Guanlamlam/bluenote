@@ -87,6 +87,11 @@ class FirebaseService {
     });
   }
 
+  Future<void> deletePost(String postId) async {
+    await FirebaseFirestore.instance.collection('posts').doc(postId).delete();
+  }
+
+
   Future<String?> uploadToCloudinary(File imageFile) async {
     final String cloudinaryUrl = 'https://api.cloudinary.com/v1_1/diobtnw7s/image/upload';
     final String uploadPreset = 'bluenote';

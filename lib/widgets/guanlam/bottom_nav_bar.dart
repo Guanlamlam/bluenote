@@ -19,7 +19,7 @@ class BottomNavBar extends StatelessWidget {
           return _buildBottomBar(context, 0); // Default with 0 count
         }
 
-        final userId = snapshot.data!['userId'];
+        final userId = snapshot.data!['userId'] ?? 'h';
 
         return StreamBuilder<int>(
           stream: FirebaseService.instance.getUnreadNotificationCountStream(userId),

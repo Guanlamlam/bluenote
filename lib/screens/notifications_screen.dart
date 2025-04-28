@@ -1,5 +1,6 @@
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -149,7 +150,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       children: [
                         CircleAvatar(
                           radius: 20,
-                          backgroundImage: NetworkImage(
+                          backgroundImage: CachedNetworkImageProvider(
                             (notification['profileImage'] ?? '').isNotEmpty
                                 ? notification['profileImage']
                                 : 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
@@ -180,13 +181,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         SizedBox(width: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
-                          child: Image.network(
-                            (notification['postThumbnail'] ?? '').isNotEmpty
+                          child: CachedNetworkImage(
+                            imageUrl: (notification['postThumbnail'] ?? '').isNotEmpty
                                 ? notification['postThumbnail']
-                                : 'https://media-cdn.tripadvisor.com/media/photo-s/10/c4/23/16/highland-view-bed-and.jpg',
+                                : 'https://i.pinimg.com/564x/0c/bb/aa/0cbbaab0deff7f188a7762d9569bf1b3.jpg',
                             width: 45,
                             height: 45,
                             fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => const Icon(Icons.error, size: 45), // Error icon if loading fails
                           ),
                         ),
                         SizedBox(width: 5),

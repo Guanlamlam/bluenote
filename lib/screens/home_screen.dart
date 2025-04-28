@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:waterfall_flow/waterfall_flow.dart';
 import '../widgets/guanlam/category_button.dart';
 import '../widgets/guanlam/custom_app_bar.dart';
 import '../widgets/guanlam/bottom_nav_bar.dart';
@@ -32,6 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool hasMore = true;
   DocumentSnapshot? lastDoc;
   final ScrollController _scrollController = ScrollController();
+
+
+
 
 
   @override
@@ -141,166 +145,158 @@ class _HomeScreenState extends State<HomeScreen> {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
-      child: ListView.builder(
-        itemCount: 5, // number of skeletons to show
+      child: GridView.builder(
+        // Set grid delegate with 2 columns
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2, // Two columns
+          crossAxisSpacing: 2.0, // Horizontal spacing between columns
+          mainAxisSpacing: 2.0, // Vertical spacing between rows
+          childAspectRatio: 0.7, // Adjust to get the desired height-to-width ratio
+        ),
+        itemCount: 6, // Number of skeletons to show
         itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image placeholder
-                  Container(
-                    height: 180,
-                    width: double.infinity,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Title placeholder
-                  Container(height: 14, width: 200, color: Colors.white),
-                  const SizedBox(height: 8),
-
-                  // Subtitle/content line
-                  Container(
-                    height: 12,
-                    width: double.infinity,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 12,
-                    width: MediaQuery.of(context).size.width * 0.6,
-                    color: Colors.white,
-                  ),
-                ],
-              ),
+          return Container(
+            margin: const EdgeInsets.all(4.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.all(Radius.circular(6)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 5,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
           );
         },
       ),
     );
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
     final filteredPosts = _filterPostsByCategory(posts);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: CustomAppBar(),
-      body:
-          user == null
-              ? Center(child: Text("No user is currently signed in."))
-              : isLoading
-              ? Center(child: _buildSkeletonLoader())
-              : RefreshIndicator(
-                onRefresh: _refreshPosts,
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    // Category buttons row
-                    SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        margin: const EdgeInsets.symmetric(vertical: 10.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            CategoryButton(
-                              text: 'All',
-                              isSelected: selectedCategory == 'All',
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = 'All';
-                                });
-                              },
-                            ),
-                            SizedBox(width: 12),
-                            CategoryButton(
-                              text: 'Events',
-                              isSelected: selectedCategory == 'Events',
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = 'Events';
-                                });
-                              },
-                            ),
-                            SizedBox(width: 12),
-                            CategoryButton(
-                              text: 'Q&A',
-                              isSelected: selectedCategory == 'Q&A',
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = 'Q&A';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
+        resizeToAvoidBottomInset: false,
+        appBar: CustomAppBar(),
+        body: user == null
+            ? Center(child: Text("No user is currently signed in."))
+            : isLoading
+            ? Center(child: _buildSkeletonLoader())
+            : RefreshIndicator(
+          onRefresh: _refreshPosts,
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // Category buttons row
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  margin: const EdgeInsets.symmetric(vertical: 10.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      CategoryButton(
+                        text: 'All',
+                        isSelected: selectedCategory == 'All',
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = 'All';
+                          });
+                        },
                       ),
-                    ),
-
-                    // ListView with posts
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final post = filteredPosts[index];
-                        return PostWidget(
-                          postId: post['id'],
-                          author: post['author'] ?? 'Unknown',
-                          authorUid: post['authorUid'] ?? '',
-                          title: post['title'] ?? 'Untitled Post',
-                          content: post['content'] ?? 'No description',
-                          imageUrls: (post['image'] as List?)?.whereType<String>().toList() ?? [],
-                          initialLikes: post['likes'] ?? 0,
-                          dateTime: post['dateTime'],
-                          user: user!,
-                        );
-
-                      }, childCount: filteredPosts.length),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Column(
-                        children: [
-                          if (isFetchingMore)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24),
-                              child: CircularProgressIndicator(),
-                            )
-                          else if (!hasMore)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24),
-                              child: Text('- No more -'),
-                            ),
-                        ],
+                      SizedBox(width: 12),
+                      CategoryButton(
+                        text: 'Events',
+                        isSelected: selectedCategory == 'Events',
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = 'Events';
+                          });
+                        },
                       ),
-                    ),
+                      SizedBox(width: 12),
+                      CategoryButton(
+                        text: 'Q&A',
+                        isSelected: selectedCategory == 'Q&A',
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = 'Q&A';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
+              // Content water fall layout
+              SliverWaterfallFlow(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                    final post = filteredPosts[index];
+                    return PostWidget(
+                      postId: post['id'],
+                      author: post['author'] ?? 'Unknown',
+                      authorUid: post['authorUid'] ?? '',
+                      title: post['title'] ?? 'Untitled Post',
+                      content: post['content'] ?? 'No description',
+                      imageUrls: (post['image'] as List?)?.whereType<String>().toList() ?? [],
+                      initialLikes: post['likes'] ?? 0,
+                      dateTime: post['dateTime'],
+                      user: user!,
+                    );
+                  },
+                  childCount: filteredPosts.length,
+                ),
+                gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                ),
+              ),
+
+
+
+              // Footer with loading indicator or no more posts message
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    if (isFetchingMore)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: CircularProgressIndicator(),
+                      )
+                    else if (!hasMore)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text('- No more -'),
+                      ),
                   ],
                 ),
               ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).primaryColor,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PostScreen()),
-          );
-        },
-        shape: CircleBorder(),
-        child: Icon(Icons.add, color: Colors.white, size: 35),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavBar(),
-    );
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Theme.of(context).primaryColor,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PostScreen()),
+            );
+          },
+          shape: CircleBorder(),
+          child: Icon(Icons.add, color: Colors.white, size: 35),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: BottomNavBar(),
+      );
+
   }
+
 }

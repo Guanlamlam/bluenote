@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:bluenote/service/notification_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
@@ -75,14 +76,16 @@ class _PostWidgetState extends State<PostWidget> {
 
   Future<void> _toggleLike() async {
     try {
-      // Toggle like on Firestore
-      await FirebaseService.instance.toggleLike(widget.postId, widget.user.uid);
 
       // Update local state
       setState(() {
         hasLiked = !hasLiked;
         likeCount = hasLiked ? likeCount + 1 : likeCount - 1;
       });
+      // Toggle like on Firestore
+      await FirebaseService.instance.toggleLike(widget.postId, widget.user.uid);
+
+
 
       // Send notification only when user likes the post (not when unliking)
       if (hasLiked) {
@@ -152,15 +155,14 @@ class _PostWidgetState extends State<PostWidget> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.all(12.0),
-
+        margin: const EdgeInsets.all(4.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.all(Radius.circular(6)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
+              blurRadius: 5,
               offset: Offset(0, 4),
             ),
           ],
@@ -172,18 +174,24 @@ class _PostWidgetState extends State<PostWidget> {
             widget.imageUrls[0].isNotEmpty
                 ? Container(
               width: double.infinity,
+              constraints: BoxConstraints(
+                maxHeight: 300, // Set the maximum height
+              ),
               // Dynamically adjust the image container height based on the image's aspect ratio
-              child: CachedNetworkImage(
-                imageUrl: widget.imageUrls[0],
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Shimmer.fromColors(
-                  baseColor: Colors.grey.shade300,
-                  highlightColor: Colors.grey.shade100,
-                  child: Container(
-                    color: Colors.white,
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+                child: CachedNetworkImage(
+                  imageUrl: widget.imageUrls[0],
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: Colors.grey.shade300,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      color: Colors.white,
+                    ),
                   ),
+                  errorWidget: (context, url, error) => Icon(Icons.error),
                 ),
-                errorWidget: (context, url, error) => Icon(Icons.error),
               ),
             )
                 : Container(), // Empty container if no image
@@ -195,26 +203,29 @@ class _PostWidgetState extends State<PostWidget> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
-                  Text(
+                  AutoSizeText(
                     widget.title,
                     style: TextStyle(
-                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     maxLines: 3,
-                  ),
-                  SizedBox(height: 4),
-
-                  // Content preview (truncated)
-                  widget.content.isEmpty
-                      ? SizedBox() // or any fallback widget
-                      : Text(
-                    widget.content,
-                    style: TextStyle(fontSize: 14),
-                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                  )
+                    minFontSize: 12,  // Minimum font size
+                    maxFontSize: 24,  // Maximum font size
+                  ),
+
+                  // SizedBox(height: 4),
+
+                  // Content preview (truncated) (leave it first dun remove)
+                  // widget.content.isEmpty
+                  //     ? SizedBox() // or any fallback widget
+                  //     : AutoSizeText(
+                  //   widget.content,
+                  //   maxLines: 2,
+                  //   overflow: TextOverflow.ellipsis,
+                  //   minFontSize: 11,  // Minimum font size
+                  //   maxFontSize: 18,  // Maximum font size
+                  // )
 
                 ],
               ),
@@ -233,19 +244,43 @@ class _PostWidgetState extends State<PostWidget> {
                         radius: 16,
                         backgroundColor: Colors.transparent,
                         child: ClipOval(
-                          child: Image.network(
-                            authorData?['profilePictureUrl'] ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg', // You can use post['authorImageUrl'] if available
-                            fit: BoxFit.cover,
-                            width: 32,
-                            height: 32,
-                          ),
+                          child: CachedNetworkImage(
+                            imageUrl: authorData?['profilePictureUrl'] ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
+                            imageBuilder: (context, imageProvider) => Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: DecorationImage(
+                                  image: imageProvider,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            placeholder: (context, url) => const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            errorWidget: (context, url, error) => const Icon(Icons.error, size: 32),
+                          )
+
                         ),
                       ),
                       SizedBox(width: 8),
-                      Text(
+                      // Text(
+                      //   widget.author,
+                      //   style: TextStyle(fontSize: 14),
+                      // ),
+
+                      AutoSizeText(
                         widget.author,
-                        style: TextStyle(fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        minFontSize: 10,  // Minimum font size
+                        maxFontSize: 12,  // Maximum font size
                       ),
+
                     ],
                   ),
 

@@ -1,6 +1,8 @@
+import 'package:bluenote/screens/home_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/image_view.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -184,6 +186,79 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
+  void _showPostOptionsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.edit, color: Colors.black),
+              title: Text('Edit'),
+              onTap: () {
+                Navigator.pop(context);
+                print("Edit tapped");
+                // Navigate to edit screen if you have one
+                // Navigator.push(context, MaterialPageRoute(...));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_forever, color: Colors.redAccent),
+              title: Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeletePostDialog(context, widget.postId);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeletePostDialog(BuildContext context, String postId) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Delete Post"),
+          content: Text("Are you sure you want to delete this post?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+
+
+                await FirebaseService.instance.deletePost(postId);
+
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                );
+
+
+              },
+              child: Text("Delete", style: TextStyle(color: Colors.redAccent)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+
   @override
   void dispose() {
     // TODO: implement dispose
@@ -202,17 +277,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            CircleAvatar(
-              backgroundImage: NetworkImage( authorData?['profilePictureUrl'] ??
-                'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
-              ), // Admin profile image
+            Row(
+              children: [
+                CircleAvatar(
+                  // radius: 16, //set the size of the avatar
+                  backgroundImage: CachedNetworkImageProvider(
+                    authorData?['profilePictureUrl'] ??
+                        'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
+                  ),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  widget.author,
+                  style: TextStyle(color: Colors.black, fontSize: 16),
+                ),
+              ],
             ),
-            SizedBox(width: 8),
-            Text(
-              widget.author,
-              style: TextStyle(color: Colors.black, fontSize: 16),
-            ),
+            if (userId == widget.authorUid)
+              IconButton(
+                icon: Icon(Icons.more_vert, color: Colors.black),
+                onPressed: () => _showPostOptionsBottomSheet(context),
+              ),
           ],
         ),
       ),
@@ -249,11 +336,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 scaleEnabled: true,
                                 minScale: 0.5,
                                 maxScale: 3.0,
-                                child: Image.network(
-                                  widget.imageUrls[index],
+                                child: CachedNetworkImage(
+                                  imageUrl: widget.imageUrls[index],
                                   width: double.infinity,
                                   height: double.infinity,
                                   fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()), // Optional: show a loading spinner
+                                  errorWidget: (context, url, error) => const Icon(Icons.error), // Optional: show an error icon
                                 ),
                               ),
                             );
@@ -271,7 +360,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
+                                color: Colors.black.withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Text(
@@ -297,10 +386,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         children: List.generate(
                           widget.imageUrls.length,
                           (index) => AnimatedContainer(
-                            duration: Duration(milliseconds: 200),
-                            margin: EdgeInsets.symmetric(horizontal: 4),
-                            width: 8,
-                            height: 8,
+                            duration: Duration(milliseconds: 100),
+                            margin: EdgeInsets.symmetric(horizontal: 3),
+                            width: 6,
+                            height: 6,
                             decoration: BoxDecoration(
                               color:
                                   _currentPageIndex == index
@@ -369,8 +458,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundImage: NetworkImage(profilePicture ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'),
-                  ), // User Avatar
+                    // radius: 32, //set the size of the avatar
+                    backgroundImage: CachedNetworkImageProvider(
+                      profilePicture ??
+                          'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
+                    ),
+                  ),
                   SizedBox(width: 10),
                   Expanded(
                     child: TextField(
@@ -398,13 +491,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         comment: _commentController.text.trim(),
                       );
 
-                      _commentController.clear(); // ✅ Clear the input
-                      FocusScope.of(context).unfocus(); // 👈 hide keyboard
+                      _commentController.clear(); // Clear the input
+                      FocusScope.of(context).unfocus(); // hide keyboard
                       setState(
                         () {
                           commentCount++;
                         },
-                      ); // ✅ Rebuild the widget to trigger FutureBuilder to refresh
+                      ); // Rebuild the widget to trigger FutureBuilder to refresh
                     },
 
                     style: ElevatedButton.styleFrom(
@@ -576,7 +669,7 @@ class _CommentTileState extends State<CommentTile> {
                     'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg';
 
                 return CircleAvatar(
-                  backgroundImage: NetworkImage(profileUrl),
+                  backgroundImage: CachedNetworkImageProvider(profileUrl),
                 );
               },
             ),
