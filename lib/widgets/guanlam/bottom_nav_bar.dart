@@ -1,12 +1,10 @@
 
-import 'dart:ffi';
-
 import 'package:bluenote/screens/notifications_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:flutter/material.dart';
 import 'package:bluenote/screens/auth/user_profile_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 
 class BottomNavBar extends StatelessWidget {

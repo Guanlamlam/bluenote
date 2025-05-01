@@ -1,3 +1,4 @@
+import 'package:bluenote/screens/search_results_screen.dart';
 import 'package:flutter/material.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -68,7 +69,19 @@ class _CustomAppBarState extends State<CustomAppBar> {
                     fillColor: Color(0xFFF0F0F0),
                     contentPadding: EdgeInsets.symmetric(vertical: 0), // Center vertically
                   ),
-                  textAlignVertical: TextAlignVertical.center, // Vertically center the text
+                  textAlignVertical: TextAlignVertical.center,
+                  onSubmitted: (value) {
+                    final query = value.trim();
+                    if (query.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SearchResultsScreen(query: query),
+                        ),
+                      );
+                    }
+                  },
+// Vertically center the text
                 ),
               ),
             ],

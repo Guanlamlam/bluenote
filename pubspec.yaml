@@ -53,6 +53,7 @@ dependencies:
   auto_size_text: ^3.0.0
   mime: ^2.0.0 #it used for detects the MIME type based on the file extension
   shared_preferences: ^2.5.3 #for cache the username after login
+  provider: ^6.1.4
 
   firebase_messaging: ^15.2.5 #for notifications
   #flutter_local_notifications: ^19.1.0 #local notification popup

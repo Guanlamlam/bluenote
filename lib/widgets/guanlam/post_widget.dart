@@ -1,75 +1,68 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:bluenote/providers/selected_post_provider.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:bluenote/service/notification_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:bluenote/service/firebase_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class PostWidget extends StatefulWidget {
-  final String postId;
-  final String author;
-  final String authorUid;
-  final String title;
-  final String content;
-  final List<String> imageUrls;
-  final int initialLikes;
-  final User user;
-  final Timestamp dateTime;
+
+  final PostModel postModel;
+  final Map<String, dynamic> authorData;
 
   const PostWidget({
-    Key? key,
-    required this.postId,
-    required this.author,
-    required this.authorUid,
-    required this.title,
-    required this.content,
-    required this.imageUrls,
-    required this.initialLikes,
-    required this.user,
-    required this.dateTime,
-  }) : super(key: key);
+    super.key,
+    required this.postModel,
+    required this.authorData,
+  });
 
   @override
   _PostWidgetState createState() => _PostWidgetState();
 }
 
 class _PostWidgetState extends State<PostWidget> {
+  String? userId;
+  String? userName;
+  String? profilePicture;
+
   late bool hasLiked;
   late int likeCount;
 
-  Map<String, dynamic>? authorData;
 
   @override
   void initState() {
     super.initState();
     hasLiked = false;
-    likeCount = widget.initialLikes;
-
-    _checkIfUserLiked();
-    _loadAuthorData();
+    likeCount = widget.postModel.likes;
+    _initialize();
   }
 
-  Future<void> _loadAuthorData() async {
-    try {
-      final data = await FirebaseService.instance.getUserData(widget.authorUid);
-      setState(() {
-        authorData = data;
-      });
-    } catch (e) {
-      print("Failed to fetch author data: $e");
-    }
+  Future<void> _initialize() async {
+    await _loadUserData(); // Ensure userId is set
+    await _checkIfUserLiked(); // Now safe to check
   }
+
+  // Fetch user data asynchronously in initState()
+  Future<void> _loadUserData() async {
+    // Retrieve cached user info
+    final userData = await getCachedUserData();
+    userId = userData['userId'];
+    userName = userData['username'];
+    profilePicture = userData['profilePictureUrl'];
+  }
+
 
   Future<void> _checkIfUserLiked() async {
-    bool userHasLiked = await FirebaseService.instance.hasUserLiked(widget.postId, widget.user.uid);
-    setState(() {
-      hasLiked = userHasLiked;
-    });
+
+      bool userHasLiked = await FirebaseService.instance.hasUserLiked(widget.postModel.postId, userId!);
+      setState(() {
+        hasLiked = userHasLiked;
+      });
   }
 
 
@@ -83,14 +76,14 @@ class _PostWidgetState extends State<PostWidget> {
         likeCount = hasLiked ? likeCount + 1 : likeCount - 1;
       });
       // Toggle like on Firestore
-      await FirebaseService.instance.toggleLike(widget.postId, widget.user.uid);
+      await FirebaseService.instance.toggleLike(widget.postModel.postId, userId!);
 
 
 
       // Send notification only when user likes the post (not when unliking)
       if (hasLiked) {
         // Get the post author's FCM token
-        Map<String, dynamic> authorFCM = await FirebaseService.instance.getUserData(widget.authorUid);
+        Map<String, dynamic> authorFCM = await FirebaseService.instance.getUserData(widget.postModel.authorUid);
         String authorFcmToken = authorFCM['fcmToken'];
 
         // Retrieve cached user info
@@ -99,27 +92,27 @@ class _PostWidgetState extends State<PostWidget> {
         String? username = userData['username'];
         String? profilePicture = userData['profilePictureUrl'];
 
-        // Send notification to the post author
-        if (authorFcmToken.isNotEmpty && username != null) {
+        // Send notification to the post author except the author like their own posts
+        if (authorFcmToken.isNotEmpty && username != null && userId != widget.postModel.authorUid) {
           NotificationService.sendPushNotification(
               targetToken: authorFcmToken,
-              title: "$username",
+              title: username,
               body: "Liked your post"
           );
 
           try {
             await FirebaseService.instance.addNotification(
-              targetUid: widget.authorUid,
+              targetUid: widget.postModel.authorUid,
               username: username,
               message: 'Liked your post',
               profileImage: profilePicture,
-              postId: widget.postId,
-              postThumbnail: widget.imageUrls[0],
+              postId: widget.postModel.postId,
+              postThumbnail: widget.postModel.imageUrls[0],
 
             );
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to send notification')),
+              SnackBar(content: Text('❌ ❌ Failed to send notification')),
             );
           }
 
@@ -137,24 +130,19 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final post = widget.postModel;
+    final author = widget.authorData;
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PostDetailScreen(
-              postId: widget.postId,
-              author: widget.author,
-              authorUid: widget.authorUid,
-              title: widget.title,
-              description: widget.content,
-              imageUrls: widget.imageUrls,
-              dateTime: widget.dateTime,
-            ),
-          ),
-        );
-      },
-      child: Container(
+        onTap: () {
+          Provider.of<SelectedPostProvider>(context, listen: false).setPost(post);
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => PostDetailScreen()),
+          );
+        },
+
+        child: Container(
         margin: const EdgeInsets.all(4.0),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -171,17 +159,17 @@ class _PostWidgetState extends State<PostWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image Section - Dynamic height based on image size
-            widget.imageUrls[0].isNotEmpty
+            post.imageUrls[0].isNotEmpty
                 ? Container(
               width: double.infinity,
               constraints: BoxConstraints(
-                maxHeight: 300, // Set the maximum height
+                maxHeight: 280, // Set the maximum height
               ),
               // Dynamically adjust the image container height based on the image's aspect ratio
               child: ClipRRect(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
                 child: CachedNetworkImage(
-                  imageUrl: widget.imageUrls[0],
+                  imageUrl: post.imageUrls[0],
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Shimmer.fromColors(
                     baseColor: Colors.grey.shade300,
@@ -204,7 +192,7 @@ class _PostWidgetState extends State<PostWidget> {
                 children: [
                   // Title
                   AutoSizeText(
-                    widget.title,
+                    post.title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
@@ -213,20 +201,6 @@ class _PostWidgetState extends State<PostWidget> {
                     minFontSize: 12,  // Minimum font size
                     maxFontSize: 24,  // Maximum font size
                   ),
-
-                  // SizedBox(height: 4),
-
-                  // Content preview (truncated) (leave it first dun remove)
-                  // widget.content.isEmpty
-                  //     ? SizedBox() // or any fallback widget
-                  //     : AutoSizeText(
-                  //   widget.content,
-                  //   maxLines: 2,
-                  //   overflow: TextOverflow.ellipsis,
-                  //   minFontSize: 11,  // Minimum font size
-                  //   maxFontSize: 18,  // Maximum font size
-                  // )
-
                 ],
               ),
             ),
@@ -245,7 +219,7 @@ class _PostWidgetState extends State<PostWidget> {
                         backgroundColor: Colors.transparent,
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: authorData?['profilePictureUrl'] ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
+                            imageUrl: author['profilePictureUrl'] ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
                             imageBuilder: (context, imageProvider) => Container(
                               width: 28,
                               height: 28,
@@ -274,7 +248,7 @@ class _PostWidgetState extends State<PostWidget> {
                       // ),
 
                       AutoSizeText(
-                        widget.author,
+                        post.author,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         minFontSize: 10,  // Minimum font size

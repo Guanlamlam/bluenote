@@ -1,3 +1,4 @@
+import 'package:bluenote/providers/selected_post_provider.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,7 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
 
   late User? user;
-  Map<String, dynamic> userData = {};
+
   List<Map<String, dynamic>> posts = [];
   bool isLoading = true;
 
@@ -43,11 +44,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     user = FirebaseService.instance.getCurrentUser();
     if (user != null) {
-      _loadInitialData(user!.uid);
+      _loadInitialData();
     }
     requestPermission();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300) {
         _loadMorePosts();
       }
     });
@@ -61,31 +62,53 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadInitialData(String uid) async {
-    final fetchedUserData = await FirebaseService.instance.getUserData(uid);
+  Future<void> _loadInitialData() async {
     final fetchedPosts = await FirebaseService.instance.getPosts();
+    final List<Map<String, dynamic>> postsWithAuthor = [];
+
+    for (var post in fetchedPosts) {
+      final postModel = PostModel.fromMap(post);
+      final authorData = await FirebaseService.instance.getUserData(postModel.authorUid);
+      postsWithAuthor.add({
+        'postModel': postModel,
+        'authorData': authorData,
+
+      });
+    }
 
     if (fetchedPosts.isNotEmpty) {
       lastDoc = fetchedPosts.last['snapshot'];
     }
 
     setState(() {
-      userData = fetchedUserData;
-      posts = fetchedPosts;
+      posts = postsWithAuthor;
       isLoading = false;
     });
+
   }
+
+
   Future<void> _loadMorePosts() async {
     if (isFetchingMore || !hasMore) return;
 
     setState(() => isFetchingMore = true);
 
     final fetchedPosts = await FirebaseService.instance.getPosts(lastDoc: lastDoc);
+    final List<Map<String, dynamic>> newPostsWithAuthor = [];
+
+    for (var post in fetchedPosts) {
+      final postModel = PostModel.fromMap(post);
+      final authorData = await FirebaseService.instance.getUserData(postModel.authorUid);
+      newPostsWithAuthor.add({
+        'postModel': postModel,
+        'authorData': authorData,
+      });
+    }
 
     if (fetchedPosts.isNotEmpty) {
       lastDoc = fetchedPosts.last['snapshot'];
       setState(() {
-        posts.addAll(fetchedPosts);
+        posts.addAll(newPostsWithAuthor);
       });
     } else {
       setState(() => hasMore = false);
@@ -93,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => isFetchingMore = false);
   }
+
 
 
 
@@ -114,31 +138,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
-  // Future<void> _loadInitialData(String uid) async {
-  //   final fetchedUserData = await FirebaseService.instance.getUserData(uid);
-  //   final fetchedPosts = await FirebaseService.instance.getPosts();
-  //   setState(() {
-  //     userData = fetchedUserData;
-  //     posts = fetchedPosts;
-  //     isLoading = false;
-  //   });
-  // }
-
   Future<void> _refreshPosts() async {
     if (user == null) return;
+
     final fetchedPosts = await FirebaseService.instance.getPosts();
+    final List<Map<String, dynamic>> postsWithAuthor = [];
+
+    for (var post in fetchedPosts) {
+      final postModel = PostModel.fromMap(post);
+      final authorData = await FirebaseService.instance.getUserData(postModel.authorUid);
+      postsWithAuthor.add({
+        'postModel': postModel,
+        'authorData': authorData,
+      });
+    }
+
     setState(() {
-      posts = fetchedPosts;
+      posts = postsWithAuthor;
     });
   }
+
 
   List<Map<String, dynamic>> _filterPostsByCategory(
     List<Map<String, dynamic>> allPosts,
   ) {
     if (selectedCategory == 'All') return allPosts;
     return allPosts
-        .where((post) => post['category'] == selectedCategory)
+        .where((post) =>
+    (post['postModel'] as PostModel).category == selectedCategory)
         .toList();
+
   }
 
   Widget _buildSkeletonLoader() {
@@ -173,10 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -241,18 +266,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 delegate: SliverChildBuilderDelegate(
                       (context, index) {
                     final post = filteredPosts[index];
+
+                    final postModel = post['postModel'] as PostModel;
+                    final authorData = post['authorData'] as Map<String, dynamic>;
+
                     return PostWidget(
-                      postId: post['id'],
-                      author: post['author'] ?? 'Unknown',
-                      authorUid: post['authorUid'] ?? '',
-                      title: post['title'] ?? 'Untitled Post',
-                      content: post['content'] ?? 'No description',
-                      imageUrls: (post['image'] as List?)?.whereType<String>().toList() ?? [],
-                      initialLikes: post['likes'] ?? 0,
-                      dateTime: post['dateTime'],
-                      user: user!,
+                      postModel: postModel,
+                      authorData: authorData,
                     );
-                  },
+
+
+                      },
                   childCount: filteredPosts.length,
                 ),
                 gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(

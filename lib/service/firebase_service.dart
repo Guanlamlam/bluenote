@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:bluenote/providers/selected_post_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,7 @@ class FirebaseService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 5}) async {
+  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 4}) async {
     try {
       Query query = _firestore
           .collection('posts')
@@ -51,7 +52,7 @@ class FirebaseService {
 
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
+        data['postId'] = doc.id;
         data['snapshot'] = doc; // Store snapshot for pagination
         return data;
       }).toList();
@@ -60,6 +61,45 @@ class FirebaseService {
       return [];
     }
   }
+
+  Future<PostModel?> getPostById(String postId) async {
+    final doc = await _firestore.collection('posts').doc(postId).get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      data['postId'] = doc.id;
+      return PostModel.fromMap(data);
+    }
+    return null;
+  }
+
+
+  Future<List<Map<String, dynamic>>> searchPosts(String query) async {
+    try {
+      final snapshot = await _firestore
+          .collection('posts')
+          .orderBy('dateTime', descending: true)
+          .limit(10) //only show 10
+          .get();
+
+      final lowerQuery = query.toLowerCase();
+
+      final filtered = snapshot.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final title = (data['title'] ?? '').toString().toLowerCase();
+        return title.contains(lowerQuery);
+      }).map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['postId'] = doc.id;
+        return data;
+      }).toList();
+
+      return filtered;
+    } catch (e) {
+      print("Search error: $e");
+      return [];
+    }
+  }
+
 
 
 
@@ -161,7 +201,7 @@ class FirebaseService {
 
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
+        data['commentId'] = doc.id;
         return data;
       }).toList();
     } catch (e) {
