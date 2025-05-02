@@ -62,6 +62,7 @@ class PostModel {
 
 
 
+
 class SelectedPostProvider extends ChangeNotifier {
   PostModel? _post;
   Map<String, dynamic>? _authorData;
@@ -71,10 +72,11 @@ class SelectedPostProvider extends ChangeNotifier {
 
   void setPost(PostModel? post) {
     _post = post;
-    notifyListeners();
+
     if (post != null) {
       _loadAuthorProfile(post.authorUid);
     }
+    notifyListeners();
   }
 
   // Load Author Profile based on the authorUid
@@ -87,4 +89,5 @@ class SelectedPostProvider extends ChangeNotifier {
     _post = null;
     notifyListeners();
   }
+
 }

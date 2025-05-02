@@ -37,7 +37,7 @@ class FirebaseService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 4}) async {
+  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 5}) async {
     try {
       Query query = _firestore
           .collection('posts')
@@ -84,11 +84,11 @@ class FirebaseService {
       final lowerQuery = query.toLowerCase();
 
       final filtered = snapshot.docs.where((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         final title = (data['title'] ?? '').toString().toLowerCase();
         return title.contains(lowerQuery);
       }).map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         data['postId'] = doc.id;
         return data;
       }).toList();

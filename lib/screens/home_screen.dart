@@ -1,4 +1,5 @@
 import 'package:bluenote/providers/selected_post_provider.dart';
+import 'package:bluenote/screens/auth/post/browsing_history_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -256,6 +257,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                         },
                       ),
+                      // SizedBox(width: 12),
+                      TextButton(onPressed: (){
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => BrowsingHistoryScreen()),
+                        );
+                      }, child: Text('History'))
                     ],
                   ),
                 ),

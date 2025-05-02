@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ImageView extends StatefulWidget {
   final List<String> imageUrls;
@@ -23,7 +24,8 @@ class _ImageViewState extends State<ImageView> {
         itemCount: widget.imageUrls.length,
         builder: (context, index) {
           return PhotoViewGalleryPageOptions(
-            imageProvider: NetworkImage(widget.imageUrls[index]),
+            // Use CachedNetworkImageProvider for caching images
+            imageProvider: CachedNetworkImageProvider(widget.imageUrls[index]),
             minScale: PhotoViewComputedScale.contained,
             maxScale: PhotoViewComputedScale.covered,
           );
@@ -32,7 +34,6 @@ class _ImageViewState extends State<ImageView> {
         backgroundDecoration: BoxDecoration(
           color: Colors.white,
         ),
-        // pageController: PageController(),
       ),
     );
   }

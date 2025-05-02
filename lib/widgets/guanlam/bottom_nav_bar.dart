@@ -40,9 +40,9 @@ class BottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           IconButton(icon: Icon(Icons.home), onPressed: () {}),
-          SizedBox(width: 38),
+          SizedBox(width: 36),
           IconButton(icon: Icon(Icons.search), onPressed: () {}),
-          SizedBox(width: 68),
+          SizedBox(width: 66),
 
           // 🔔 Real-time Notification Icon
           Stack(
@@ -82,7 +82,7 @@ class BottomNavBar extends StatelessWidget {
             ],
           ),
 
-          SizedBox(width: 38),
+          SizedBox(width: 36),
           IconButton(
             icon: Icon(Icons.person),
             onPressed: () {

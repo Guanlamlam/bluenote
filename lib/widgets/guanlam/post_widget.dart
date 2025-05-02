@@ -11,7 +11,6 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class PostWidget extends StatefulWidget {
-
   final PostModel postModel;
   final Map<String, dynamic> authorData;
 
@@ -32,7 +31,6 @@ class _PostWidgetState extends State<PostWidget> {
 
   late bool hasLiked;
   late int likeCount;
-
 
   @override
   void initState() {
@@ -56,34 +54,34 @@ class _PostWidgetState extends State<PostWidget> {
     profilePicture = userData['profilePictureUrl'];
   }
 
-
   Future<void> _checkIfUserLiked() async {
-
-      bool userHasLiked = await FirebaseService.instance.hasUserLiked(widget.postModel.postId, userId!);
-      setState(() {
-        hasLiked = userHasLiked;
-      });
+    bool userHasLiked = await FirebaseService.instance.hasUserLiked(
+      widget.postModel.postId,
+      userId!,
+    );
+    setState(() {
+      hasLiked = userHasLiked;
+    });
   }
-
-
 
   Future<void> _toggleLike() async {
     try {
-
       // Update local state
       setState(() {
         hasLiked = !hasLiked;
         likeCount = hasLiked ? likeCount + 1 : likeCount - 1;
       });
       // Toggle like on Firestore
-      await FirebaseService.instance.toggleLike(widget.postModel.postId, userId!);
-
-
+      await FirebaseService.instance.toggleLike(
+        widget.postModel.postId,
+        userId!,
+      );
 
       // Send notification only when user likes the post (not when unliking)
       if (hasLiked) {
         // Get the post author's FCM token
-        Map<String, dynamic> authorFCM = await FirebaseService.instance.getUserData(widget.postModel.authorUid);
+        Map<String, dynamic> authorFCM = await FirebaseService.instance
+            .getUserData(widget.postModel.authorUid);
         String authorFcmToken = authorFCM['fcmToken'];
 
         // Retrieve cached user info
@@ -93,11 +91,13 @@ class _PostWidgetState extends State<PostWidget> {
         String? profilePicture = userData['profilePictureUrl'];
 
         // Send notification to the post author except the author like their own posts
-        if (authorFcmToken.isNotEmpty && username != null && userId != widget.postModel.authorUid) {
+        if (authorFcmToken.isNotEmpty &&
+            username != null &&
+            userId != widget.postModel.authorUid) {
           NotificationService.sendPushNotification(
-              targetToken: authorFcmToken,
-              title: username,
-              body: "Liked your post"
+            targetToken: authorFcmToken,
+            title: username,
+            body: "Liked your post",
           );
 
           try {
@@ -108,48 +108,44 @@ class _PostWidgetState extends State<PostWidget> {
               profileImage: profilePicture,
               postId: widget.postModel.postId,
               postThumbnail: widget.postModel.imageUrls[0],
-
             );
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('❌ ❌ Failed to send notification')),
             );
           }
-
         }
       }
-
     } catch (e) {
       // Show error to the user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error toggling like: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error toggling like: $e')));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     final post = widget.postModel;
     final author = widget.authorData;
     return GestureDetector(
-        onTap: () {
-          Provider.of<SelectedPostProvider>(context, listen: false).setPost(post);
+      onTap: () {
+        Provider.of<SelectedPostProvider>(context, listen: false).setPost(post);
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => PostDetailScreen()),
-          );
-        },
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PostDetailScreen()),
+        );
+      },
 
-        child: Container(
+      child: Container(
         margin: const EdgeInsets.all(4.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.all(Radius.circular(6)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 5,
               offset: Offset(0, 4),
             ),
@@ -161,29 +157,28 @@ class _PostWidgetState extends State<PostWidget> {
             // Image Section - Dynamic height based on image size
             post.imageUrls[0].isNotEmpty
                 ? Container(
-              width: double.infinity,
-              constraints: BoxConstraints(
-                maxHeight: 280, // Set the maximum height
-              ),
-              // Dynamically adjust the image container height based on the image's aspect ratio
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-                child: CachedNetworkImage(
-                  imageUrl: post.imageUrls[0],
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      color: Colors.white,
+                  width: double.infinity,
+                  constraints: BoxConstraints(
+                    minHeight: 250, // Set the minimum height
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(6),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: post.imageUrls[0],
+                      fit: BoxFit.cover,
+                      placeholder:
+                          (context, url) => Shimmer.fromColors(
+                            baseColor: Colors.grey.shade300,
+                            highlightColor: Colors.grey.shade100,
+                            child: Container(color: Colors.white),
+                          ),
+                      errorWidget: (context, url, error) => Icon(Icons.error),
                     ),
                   ),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
-                ),
-              ),
-            )
+                )
                 : Container(), // Empty container if no image
-
             // Text Content Section - Dynamically adjust based on content
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -193,13 +188,11 @@ class _PostWidgetState extends State<PostWidget> {
                   // Title
                   AutoSizeText(
                     post.title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    minFontSize: 12,  // Minimum font size
-                    maxFontSize: 24,  // Maximum font size
+                    minFontSize: 12, // Minimum font size
+                    maxFontSize: 24, // Maximum font size
                   ),
                 ],
               ),
@@ -219,42 +212,49 @@ class _PostWidgetState extends State<PostWidget> {
                         backgroundColor: Colors.transparent,
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: author['profilePictureUrl'] ?? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
-                            imageBuilder: (context, imageProvider) => Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: DecorationImage(
-                                  image: imageProvider,
-                                  fit: BoxFit.cover,
+                            imageUrl:
+                            author['profilePictureUrl'].isEmpty
+                                ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
+                                : author['profilePictureUrl'],
+                            imageBuilder:
+                                (context, imageProvider) => Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    image: DecorationImage(
+                                      image: imageProvider,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            placeholder: (context, url) => const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            errorWidget: (context, url, error) => const Icon(Icons.error, size: 32),
-                          )
-
+                            placeholder:
+                                (context, url) => const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                            errorWidget:
+                                (context, url, error) =>
+                                    const Icon(Icons.error, size: 32),
+                          ),
                         ),
                       ),
                       SizedBox(width: 8),
+
                       // Text(
                       //   widget.author,
                       //   style: TextStyle(fontSize: 14),
                       // ),
-
                       AutoSizeText(
                         post.author,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        minFontSize: 10,  // Minimum font size
-                        maxFontSize: 12,  // Maximum font size
+                        minFontSize: 10, // Minimum font size
+                        maxFontSize: 12, // Maximum font size
                       ),
-
                     ],
                   ),
 
