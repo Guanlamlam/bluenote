@@ -50,12 +50,15 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         // Fetch more posts asynchronously
-        Provider.of<PostProvider>(context, listen: false).fetchMorePosts();
-
-        setState(() {
-          isFetchingMore = false; // Hide the loader once fetching is done
+        Provider.of<PostProvider>(context, listen: false).fetchMorePosts().then((_) {
+          setState(() {
+            isFetchingMore = false; // Hide the loader once fetching is done
+          });
+        }).catchError((error) {
+          setState(() {
+            isFetchingMore = false; // Hide the loader even if there's an error
+          });
         });
-
       }
     });
   }
