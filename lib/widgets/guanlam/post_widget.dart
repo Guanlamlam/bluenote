@@ -1,7 +1,8 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:bluenote/providers/selected_post_provider.dart';
+import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:bluenote/service/notification_service.dart';
+import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -11,13 +12,11 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class PostWidget extends StatefulWidget {
-  final PostModel postModel;
-  final Map<String, dynamic> authorData;
+  final PostModel post;
 
   const PostWidget({
     super.key,
-    required this.postModel,
-    required this.authorData,
+    required this.post,
   });
 
   @override
@@ -36,7 +35,7 @@ class _PostWidgetState extends State<PostWidget> {
   void initState() {
     super.initState();
     hasLiked = false;
-    likeCount = widget.postModel.likes;
+    likeCount = widget.post.likes;
     _initialize();
   }
 
@@ -56,7 +55,7 @@ class _PostWidgetState extends State<PostWidget> {
 
   Future<void> _checkIfUserLiked() async {
     bool userHasLiked = await FirebaseService.instance.hasUserLiked(
-      widget.postModel.postId,
+      widget.post.postId,
       userId!,
     );
     setState(() {
@@ -73,7 +72,7 @@ class _PostWidgetState extends State<PostWidget> {
       });
       // Toggle like on Firestore
       await FirebaseService.instance.toggleLike(
-        widget.postModel.postId,
+        widget.post.postId,
         userId!,
       );
 
@@ -81,7 +80,7 @@ class _PostWidgetState extends State<PostWidget> {
       if (hasLiked) {
         // Get the post author's FCM token
         Map<String, dynamic> authorFCM = await FirebaseService.instance
-            .getUserData(widget.postModel.authorUid);
+            .getUserData(widget.post.authorUid);
         String authorFcmToken = authorFCM['fcmToken'];
 
         // Retrieve cached user info
@@ -93,7 +92,7 @@ class _PostWidgetState extends State<PostWidget> {
         // Send notification to the post author except the author like their own posts
         if (authorFcmToken.isNotEmpty &&
             username != null &&
-            userId != widget.postModel.authorUid) {
+            userId != widget.post.authorUid) {
           NotificationService.sendPushNotification(
             targetToken: authorFcmToken,
             title: username,
@@ -102,12 +101,12 @@ class _PostWidgetState extends State<PostWidget> {
 
           try {
             await FirebaseService.instance.addNotification(
-              targetUid: widget.postModel.authorUid,
+              targetUid: widget.post.authorUid,
               username: username,
               message: 'Liked your post',
               profileImage: profilePicture,
-              postId: widget.postModel.postId,
-              postThumbnail: widget.postModel.imageUrls[0],
+              postId: widget.post.postId,
+              postThumbnail: widget.post.imageUrls[0],
             );
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -126,11 +125,10 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.postModel;
-    final author = widget.authorData;
+    final post = widget.post;
     return GestureDetector(
       onTap: () {
-        Provider.of<SelectedPostProvider>(context, listen: false).setPost(post);
+        Provider.of<PostProvider>(context, listen: false).setSelectedPost(post);
 
         Navigator.push(
           context,
@@ -213,9 +211,9 @@ class _PostWidgetState extends State<PostWidget> {
                         child: ClipOval(
                           child: CachedNetworkImage(
                             imageUrl:
-                            author['profilePictureUrl'].isEmpty
+                            post.authorData!['profilePictureUrl'].isEmpty
                                 ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
-                                : author['profilePictureUrl'],
+                                : post.authorData!['profilePictureUrl'],
                             imageBuilder:
                                 (context, imageProvider) => Container(
                                   width: 28,

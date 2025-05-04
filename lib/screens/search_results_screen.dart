@@ -1,5 +1,6 @@
-import 'package:bluenote/providers/selected_post_provider.dart';
+
 import 'package:bluenote/service/firebase_service.dart';
+import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
@@ -15,7 +16,7 @@ class SearchResultsScreen extends StatefulWidget {
 }
 
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
-  List<Map<String, dynamic>> filteredPosts = [];
+  List<PostModel> filteredPosts = [];
   bool isLoading = true;
 
   @override
@@ -25,22 +26,33 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Future<void> _performSearch() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+
+    // Get search results from Firebase
     final rawResults = await FirebaseService.instance.searchPosts(widget.query);
 
-    // Optionally: get author data for each post
-    final resultsWithAuthor = await Future.wait(rawResults.map((post) async {
-      final authorData = await FirebaseService.instance.getUserData(post['authorUid']);
-      return {
-        'postModel': PostModel.fromMap(post),
-        'authorData': authorData,
-      };
+    // Map the raw results to a list of PostModel objects, including author data
+    final posts = await Future.wait(rawResults.map((data) async {
+      final post = PostModel.fromMap(data);
+
+      // Fetch the author's data
+      final authorData = await FirebaseService.instance.getUserData(post.authorUid);
+
+      // Add the author data to the post
+      post.authorData = authorData;
+
+      return post;
     }));
 
     setState(() {
-      filteredPosts = resultsWithAuthor;
-      isLoading = false;
+      filteredPosts = posts; // Set filteredPosts to the list of PostModel objects with author data
+      isLoading = false; // End loading
     });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +77,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     (context, index) {
                   final post = filteredPosts[index];
                   return PostWidget(
-                    postModel: post['postModel'],
-                    authorData: post['authorData'],
+                    post: post,
                   );
                 },
                 childCount: filteredPosts.length,

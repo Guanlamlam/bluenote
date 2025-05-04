@@ -1,5 +1,5 @@
 
-import 'package:bluenote/providers/selected_post_provider.dart';
+import 'package:bluenote/providers/post_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,7 +19,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SelectedPostProvider()),
+        ChangeNotifierProvider(create: (_) => PostProvider()),
         // Add more providers here if needed later !!!
       ],
       child: MyApp(),

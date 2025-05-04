@@ -1,4 +1,4 @@
-import 'package:bluenote/providers/selected_post_provider.dart';
+import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
@@ -145,10 +145,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       postId,
                     );
                     if (post != null) {
-                      Provider.of<SelectedPostProvider>(
+                      Provider.of<PostProvider>(
                         context,
                         listen: false,
-                      ).setPost(post);
+                      ).setSelectedPost(post);
 
                       Navigator.push(
                         context,
@@ -227,18 +227,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                         SizedBox(width: 10),
-                        // ClipRRect(
-                        //   borderRadius: BorderRadius.circular(6),
-                        //   child: CachedNetworkImage(
-                        //     imageUrl: (notification['postThumbnail'] ?? '').isNotEmpty
-                        //         ? notification['postThumbnail']
-                        //         : 'https://i.pinimg.com/564x/0c/bb/aa/0cbbaab0deff7f188a7762d9569bf1b3.jpg',
-                        //     width: 45,
-                        //     height: 45,
-                        //     fit: BoxFit.cover,
-                        //     errorWidget: (context, url, error) => const Icon(Icons.error, size: 45), // Error icon if loading fails
-                        //   ),
-                        // ),
+
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: CachedNetworkImage(
@@ -260,10 +249,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                   ),
 
-                  // Divider(
-                  //   color: Colors.grey[300], // Light grey color for the divider
-                  //   thickness: .1, // Optional: Adjust thickness if needed
-                  // ), // Add a Divider after each notification
+
                 ],
               ),
             ),

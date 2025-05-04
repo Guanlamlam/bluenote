@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:bluenote/providers/selected_post_provider.dart';
+import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -103,19 +103,22 @@ class FirebaseService {
 
 
 
-  Future<void> uploadPost({
+  Future<PostModel> uploadPost({
     required String title,
     String? content,
     required String category,
     List<String>? imageUrls,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) return Future.error("User not authenticated");
 
+    // Fetch user data to get the 'authorData'
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final authorName = userDoc.data()?['username'] ?? 'Anonymous';
+    final authorData = userDoc.data();
 
-    await _firestore.collection('posts').add({
+    // Add the post to Firestore
+    final postRef = await _firestore.collection('posts').add({
       'title': title,
       'content': content,
       'category': category,
@@ -125,11 +128,66 @@ class FirebaseService {
       'likes': 0,
       'image': imageUrls,
     });
+
+    // Return the PostModel including the authorData
+    return PostModel(
+      postId: postRef.id,  // Firestore-generated post ID
+      author: authorName,
+      authorUid: user.uid,
+      title: title,
+      content: content ?? '',
+      imageUrls: imageUrls ?? [],
+      dateTime: DateTime.now(),  // Or use the timestamp from Firestore if needed
+      likes: 0,
+      category: category,
+      authorData: authorData,
+    );
   }
+
 
   Future<void> deletePost(String postId) async {
     await FirebaseFirestore.instance.collection('posts').doc(postId).delete();
   }
+
+  // Update Post function
+  Future<PostModel> updatePost(
+      String postId,
+      String title,
+      String content,
+      String category,
+      List<String> imageUrls,
+      ) async {
+    final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+
+    // 1. Perform the update in Firestore
+    await postRef.update({
+      'title': title,
+      'content': content,
+      'category': category,
+      'image': imageUrls,
+      'dateTime': Timestamp.now(),
+    });
+
+    // 2. Fetch the updated post data
+    final updatedPost = await getPostById(postId); // Ensure this is an async function
+    if (updatedPost == null) {
+      throw Exception('Post not found');
+    }
+
+    // 3. Fetch the author data associated with the post
+    final authorData = await getUserData(updatedPost.authorUid); // Ensure this is async too
+    if (authorData == null) {
+      throw Exception('Author data not found');
+    }
+
+    // 4. Add the author data to the updated post
+    updatedPost.authorData = authorData;
+
+    // 5. Return the updated post
+    return updatedPost;
+  }
+
+
 
 
   Future<String?> uploadToCloudinary(File imageFile) async {

@@ -1,7 +1,4 @@
-import 'package:bluenote/service/firebase_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-
 
 class PostModel {
   final String postId;
@@ -13,6 +10,8 @@ class PostModel {
   final DateTime dateTime;
   final int likes;
   final String category;
+  Map<String, dynamic>? authorData;  // Add this field for author data
+  DocumentSnapshot? snapshot;
 
   PostModel({
     required this.postId,
@@ -24,10 +23,12 @@ class PostModel {
     required this.dateTime,
     required this.likes,
     required this.category,
+    this.authorData,  // Optional author data
+    this.snapshot,
   });
 
   // From a map
-  factory PostModel.fromMap(Map<String, dynamic> map) {
+  factory PostModel.fromMap(Map<String, dynamic> map, {DocumentSnapshot? snapshot}) {
     return PostModel(
       postId: map['postId'] ?? '',
       author: map['author'] ?? 'Unknown',
@@ -40,6 +41,8 @@ class PostModel {
           : (map['dateTime'] ?? DateTime.now()),
       likes: map['likes'] ?? 0,
       category: map['category'] ?? '',
+      authorData: map['authorData'], // Optional author data
+      snapshot: snapshot,
     );
   }
 
@@ -55,39 +58,7 @@ class PostModel {
       'dateTime': dateTime,
       'likes': likes,
       'category': category,
+      'authorData': authorData, // Optional author data
     };
   }
-}
-
-
-
-
-
-class SelectedPostProvider extends ChangeNotifier {
-  PostModel? _post;
-  Map<String, dynamic>? _authorData;
-
-  PostModel? get post => _post;
-  Map<String, dynamic>? get authorData => _authorData;
-
-  void setPost(PostModel? post) {
-    _post = post;
-
-    if (post != null) {
-      _loadAuthorProfile(post.authorUid);
-    }
-    notifyListeners();
-  }
-
-  // Load Author Profile based on the authorUid
-  Future<void> _loadAuthorProfile(String authorUid) async {
-    _authorData = await FirebaseService.instance.getUserData(authorUid);
-    notifyListeners();  // Notify listeners when author data is fetched
-  }
-
-  void clearPost() {
-    _post = null;
-    notifyListeners();
-  }
-
 }

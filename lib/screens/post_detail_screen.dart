@@ -1,16 +1,19 @@
-import 'package:bluenote/providers/selected_post_provider.dart';
-import 'package:bluenote/screens/home_screen.dart';
+import 'package:bluenote/providers/post_provider.dart';
+import 'package:bluenote/screens/post_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/service/notification_service.dart';
 import 'package:bluenote/widgets/guanlam/database/browsing_history_database.dart';
 import 'package:bluenote/widgets/guanlam/image_carousel.dart';
 import 'package:bluenote/widgets/guanlam/models/browsing_history_model.dart';
+import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+// import 'package:timeago/timeago.dart' as timeago;
+
 
 class PostDetailScreen extends StatefulWidget {
   PostDetailScreen({super.key});
@@ -28,7 +31,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   String? userName;
   String? profilePicture;
 
-  Map<String, dynamic>? authorData;
   String? postId;
 
 
@@ -37,27 +39,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Ensure that the data is available before calling the save function
-    final post = Provider.of<SelectedPostProvider>(context).post;
-    final authorData = Provider.of<SelectedPostProvider>(context).authorData;
+    final post = Provider.of<PostProvider>(context).selectedPost;
 
-    if (post != null && authorData != null) {
-      savePostToHistory(post, authorData);
+
+    if (post != null) {
+      savePostToHistory(post);
     }
+    _fetchCommentCount();
   }
 
-  void savePostToHistory(PostModel post, Map<String, dynamic> authorData) async {
+  void savePostToHistory(PostModel post) async {
     final history = BrowsingHistoryModel(
       postId: post.postId,
       title: post.title,
       content: post.content,
       author: post.author,
-      authorProfileURL: authorData['profilePictureUrl'],
+      authorProfileURL: post.authorData!['profilePictureUrl'],
       imagesURL: post.imageUrls,
       viewedAt: DateTime.now(),
     );
@@ -86,8 +90,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   // Fetch the comment count
-  Future<void> _fetchCommentCount(String postId) async {
-    int count = await FirebaseService.instance.getCommentCount(postId);
+  Future<void> _fetchCommentCount() async {
+    final post = Provider.of<PostProvider>(context).selectedPost;
+    int count = await FirebaseService.instance.getCommentCount(post!.postId);
 
     if (mounted) {
       setState(() {
@@ -214,9 +219,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               title: Text('Edit'),
               onTap: () {
                 Navigator.pop(context);
-                print("Edit tapped");
-                // Navigate to edit screen if you have one
-                // Navigator.push(context, MaterialPageRoute(...));
+                final selectedPost = Provider.of<PostProvider>(context, listen: false).selectedPost;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PostScreen(post: selectedPost),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -249,13 +258,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               onPressed: () async {
                 await FirebaseService.instance.deletePost(postId);
 
-                // Navigator.pushReplacement(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => HomeScreen()),
-                // );
+
                 // Pop the current screen and go back to the previous screen
                 Navigator.of(context).pop(); // Close the dialog
                 Navigator.of(context).pop(); // Pop the post detail screen
+                await Provider.of<PostProvider>(context, listen: false).deletePost(postId);
               },
               child: Text("Delete", style: TextStyle(color: Colors.redAccent)),
             ),
@@ -276,20 +283,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget build(BuildContext context) {
     final FocusNode _unfocusNode = FocusNode();
 
-    return Consumer<SelectedPostProvider>(
-      builder: (context, selectedPostProvider, child) {
-        final selectedPost = selectedPostProvider.post;
-        final authorData = selectedPostProvider.authorData;
-        if (selectedPost == null || authorData == null) {
+    return Consumer<PostProvider>(
+      builder: (context, postProvider, child) {
+        final selectedPost = postProvider.selectedPost;
+        if (selectedPost == null) {
           return Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-
-        final postId = selectedPost.postId;
-        // Fetch comment count
-        _fetchCommentCount(postId);
 
         return Scaffold(
           appBar: AppBar(
@@ -307,9 +309,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     CircleAvatar(
                       // radius: 16, //set the size of the avatar
                       backgroundImage: CachedNetworkImageProvider(
-                        authorData['profilePictureUrl'].isEmpty
+                        selectedPost.authorData?['profilePictureUrl']?.isEmpty ?? true
                             ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
-                            : authorData['profilePictureUrl'],
+                            : selectedPost.authorData!['profilePictureUrl'],
+
                       ),
                     ),
                     SizedBox(width: 8),
@@ -367,6 +370,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         DateFormat(
                           'dd-MM-yyyy HH:mm ',
                         ).format(selectedPost.dateTime), // Example timestamp
+                        // timeago.format(selectedPost.dateTime),
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
@@ -639,11 +643,11 @@ class _CommentTileState extends State<CommentTile> {
     );
 
     String authorId = widget.comment['userId'];
-    final selectedPostProvider = Provider.of<SelectedPostProvider>(
+    final selectedPostProvider = Provider.of<PostProvider>(
       context,
       listen: false,
     );
-    final post = selectedPostProvider.post;
+    final post = selectedPostProvider.selectedPost;
 
     // Get the post author's FCM token
     Map<String, dynamic> authorFCM = await FirebaseService.instance.getUserData(
@@ -680,17 +684,11 @@ class _CommentTileState extends State<CommentTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SelectedPostProvider>(
+    return Consumer<PostProvider>(
       builder: (context, selectedPostProvider, child) {
-        final selectedPost = selectedPostProvider.post;
+        final selectedPost = selectedPostProvider.selectedPost;
 
         if (selectedPost == null) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        final authorData = selectedPostProvider.authorData;
-
-        if (authorData == null) {
           return Center(child: CircularProgressIndicator());
         }
 
