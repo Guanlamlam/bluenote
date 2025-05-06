@@ -1,4 +1,5 @@
 
+import 'package:bluenote/screens/home_screen.dart';
 import 'package:bluenote/screens/notifications_screen.dart';
 import 'package:bluenote/screens/dashboard_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
@@ -40,7 +41,12 @@ class BottomNavBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: Icon(Icons.home), onPressed: () {}),
+          IconButton(icon: Icon(Icons.home), onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => (HomeScreen())),
+            );
+          }),
           SizedBox(width: 38),
           IconButton(icon: Icon(Icons.search), onPressed: () {
             Navigator.push(
