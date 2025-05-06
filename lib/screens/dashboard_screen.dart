@@ -204,15 +204,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryColor,
+        shape: const CircleBorder(),                // ← force circular
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const LostFoundPostPage()),
         ),
         child: const Icon(
           Icons.add,
-          color: Colors.white, // <-- Ensure contrast here
+          color: Colors.white, size: 35
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
       bottomNavigationBar: BottomNavBar(), // <<== ADD your BottomNavBar
     );
   }

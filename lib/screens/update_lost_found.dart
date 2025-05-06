@@ -1,7 +1,6 @@
 import 'dart:io';
-
+import 'package:bluenote/service/firebase_service.dart'; // your Cloudinary service
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -9,7 +8,11 @@ class UpdateLostFoundPage extends StatefulWidget {
   final String docId;
   final Map<String, dynamic> data;
 
-  const UpdateLostFoundPage({super.key, required this.docId, required this.data});
+  const UpdateLostFoundPage({
+    super.key,
+    required this.docId,
+    required this.data,
+  });
 
   @override
   State<UpdateLostFoundPage> createState() => _UpdateLostFoundPageState();
@@ -22,88 +25,213 @@ class _UpdateLostFoundPageState extends State<UpdateLostFoundPage> {
   late TextEditingController _locationController;
   String selectedType = "Found";
 
-  // Separate lists for network and local images
-  List<String> networkImages = [];
-  List<File> localImages = [];
+  // mirror PostScreen: one list for existing URLs, one for new Files
+  List<String> _imageUrls = [];
+  List<File> _selectedImages = [];
 
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _itemController = TextEditingController(text: widget.data['item']);
-    _contactController = TextEditingController(text: widget.data['contact']);
-    _contactNumberController = TextEditingController(text: widget.data['contactnumber']);
-    _locationController = TextEditingController(text: widget.data['location']);
+
+    _itemController =
+        TextEditingController(text: widget.data['item'] ?? '');
+    _contactController =
+        TextEditingController(text: widget.data['contact'] ?? '');
+    _contactNumberController =
+        TextEditingController(text: widget.data['contactnumber'] ?? '');
+    _locationController =
+        TextEditingController(text: widget.data['location'] ?? '');
     selectedType = widget.data['type'] ?? "Found";
 
-    // Initialize network images from Firestore data
-    networkImages = List<String>.from(widget.data['images'] ?? []);
+    // initialize URL list
+    final incoming = widget.data['images'];
+    if (incoming != null && incoming is List) {
+      _imageUrls = List<String>.from(incoming);
+    }
   }
 
-  Future<void> _pickImage() async {
-    if (networkImages.length + localImages.length >= 3) {
+  Future<void> _pickImage(ImageSource source) async {
+    if (_imageUrls.length + _selectedImages.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Maximum 3 images allowed')),
       );
       return;
     }
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    final picked = await _picker.pickImage(source: source);
     if (picked != null) {
-      setState(() {
-        localImages.add(File(picked.path));
-      });
+      setState(() => _selectedImages.add(File(picked.path)));
     }
+  }
+
+  void _showImagePickerDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Wrap(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text('Take a Photo'),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('Choose from Gallery'),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(ImageSource.gallery);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<List<String>> _uploadLocalImages() async {
-    List<String> uploadedUrls = [];
-    for (var file in localImages) {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
-      final ref = FirebaseStorage.instance.ref().child('images/$fileName');
-      final task = await ref.putFile(file);
-      final url = await task.ref.getDownloadURL();
-      uploadedUrls.add(url);
+    List<String> urls = [];
+    for (var file in _selectedImages) {
+      final url =
+      await FirebaseService.instance.uploadToCloudinary(file);
+      if (url != null) urls.add(url);
     }
-    return uploadedUrls;
+    return urls;
   }
 
   Future<void> _updatePost() async {
-    // 1. Upload any new local images
-    final newUrls = await _uploadLocalImages();
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
 
-    // 2. Combine existing network images with newly uploaded URLs
-    final allUrls = [...networkImages, ...newUrls];
+    try {
+      // upload new files
+      final newUrls = await _uploadLocalImages();
+      // merge with existing URLs
+      final allUrls = [..._imageUrls, ...newUrls];
+      // if no images at all, Firestore will store empty list
+      await FirebaseFirestore.instance
+          .collection('foundlost')          // ← your collection
+          .doc(widget.docId)
+          .update({
+        'item': _itemController.text.trim(),
+        'contact': _contactController.text.trim(),
+        'contactnumber': _contactNumberController.text.trim(),
+        'location': _locationController.text.trim(),
+        'type': selectedType,
+        'images': allUrls,
+      });
 
-    // 3. Update Firestore document
-    await FirebaseFirestore.instance
-        .collection('foundlost')
-        .doc(widget.docId)
-        .update({
-      'item': _itemController.text.trim(),
-      'contact': _contactController.text.trim(),
-      'contactnumber': _contactNumberController.text.trim(),
-      'location': _locationController.text.trim(),
-      'type': selectedType,
-      'images': allUrls,
-    });
-
-    // 4. Pop back, optionally return true to signal refresh
-    Navigator.pop(context, true);
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Update failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Widget _buildTypeButton(String type) {
-    final bool isSelected = selectedType == type;
+    final selected = selectedType == type;
     return GestureDetector(
       onTap: () => setState(() => selectedType = type),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF203980) : Colors.grey[300],
+          color: selected ? const Color(0xFF203980) : Colors.grey[300],
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(type, style: TextStyle(color: isSelected ? Colors.white : Colors.black)),
+        child: Text(type,
+            style: TextStyle(color: selected ? Colors.white : Colors.black)),
       ),
+    );
+  }
+
+  Widget _buildImagePreview() {
+    return Row(
+      children: [
+        // existing URL images
+        ..._imageUrls.map((url) {
+          if (url.isEmpty) return SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(url,
+                      width: 80, height: 80, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: -5,
+                  right: -5,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _imageUrls.remove(url);
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white, shape: BoxShape.circle),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(Icons.close,
+                          size: 14, color: Colors.black),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          );
+        }),
+        // newly picked files
+        ..._selectedImages.map((file) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(file,
+                      width: 80, height: 80, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: -5,
+                  right: -5,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedImages.remove(file));
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white, shape: BoxShape.circle),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(Icons.close,
+                          size: 14, color: Colors.black),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          );
+        }),
+        // add button
+        if (_imageUrls.length + _selectedImages.length < 3)
+          GestureDetector(
+            onTap: _showImagePickerDialog,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.add, size: 30, color: Colors.black54),
+            ),
+          ),
+      ],
     );
   }
 
@@ -120,11 +248,13 @@ class _UpdateLostFoundPageState extends State<UpdateLostFoundPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Lost & Found')),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildImagePreview(),
+            const SizedBox(height: 16),
             TextField(
               controller: _itemController,
               decoration: const InputDecoration(labelText: 'Item'),
@@ -135,13 +265,13 @@ class _UpdateLostFoundPageState extends State<UpdateLostFoundPage> {
             ),
             TextField(
               controller: _contactNumberController,
-              decoration: const InputDecoration(labelText: 'Contact Number'),
+              decoration:
+              const InputDecoration(labelText: 'Contact Number'),
             ),
             TextField(
               controller: _locationController,
               decoration: const InputDecoration(labelText: 'Location'),
             ),
-
             const SizedBox(height: 12),
             Row(
               children: [
@@ -150,61 +280,26 @@ class _UpdateLostFoundPageState extends State<UpdateLostFoundPage> {
                 _buildTypeButton("Lost"),
               ],
             ),
-
-            const SizedBox(height: 16),
-            const Text("Existing Images (from server):", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              children: [
-                ...networkImages.map((url) => Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    Image.network(url, width: 80, height: 80, fit: BoxFit.cover),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 16),
-                      onPressed: () => setState(() => networkImages.remove(url)),
-                    ),
-                  ],
-                )),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-            const Text("New Images (local):", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              children: [
-                ...localImages.map((file) => Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    Image.file(file, width: 80, height: 80, fit: BoxFit.cover),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 16),
-                      onPressed: () => setState(() => localImages.remove(file)),
-                    ),
-                  ],
-                )),
-                // Conditional add button
-                if (networkImages.length + localImages.length < 3)
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.add),
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-            Center(
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
-                onPressed: _updatePost,
-                child: const Text('Update Post'),
+                onPressed: _isLoading ? null : _updatePost,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF203980),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
+                )
+                    : const Text('Update Post',
+                    style: TextStyle(color: Colors.white)),
               ),
             ),
           ],

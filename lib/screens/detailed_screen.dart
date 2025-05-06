@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:bluenote/widgets/guanlam/bottom_nav_bar.dart';
 import 'package:bluenote/widgets/guanlam/custom_app_bar.dart';
 
@@ -24,6 +26,8 @@ class DetailedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = DateFormat.yMMMMd().add_jm();
+
     return Scaffold(
       appBar: CustomAppBar(),
       body: Padding(
@@ -35,9 +39,7 @@ class DetailedScreen extends StatelessWidget {
               children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -67,6 +69,11 @@ class DetailedScreen extends StatelessWidget {
                         images[index],
                         width: 250,
                         fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, stack) => Container(
+                          width: 250,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.broken_image),
+                        ),
                       ),
                     ),
                   ),
@@ -75,24 +82,64 @@ class DetailedScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Item Details
-            Text('Item: $item',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              'Item: $item',
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
 
-            Text('Contact Name: $contactName',
-                style: const TextStyle(fontSize: 18)),
+            Text(
+              'Contact Name: $contactName',
+              style: const TextStyle(fontSize: 18),
+            ),
             const SizedBox(height: 8),
 
-            Text('Contact Number: $contactNumber',
-                style: const TextStyle(fontSize: 18)),
+            Text(
+              'Contact Number: $contactNumber',
+              style: const TextStyle(fontSize: 18),
+            ),
             const SizedBox(height: 8),
 
-            Text('Location: $location',
-                style: const TextStyle(fontSize: 18)),
+            Text(
+              'Location: $location',
+              style: const TextStyle(fontSize: 18),
+            ),
             const SizedBox(height: 8),
 
-            Text('Date/Time: ${timestamp.toLocal()}',
-                style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            // Formatted Date/Time
+            Text(
+              'Date/Time: ${formatter.format(timestamp.toLocal())}',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+
+            const SizedBox(height: 24),
+            // Contact via WhatsApp Button
+            ElevatedButton.icon(
+              icon: const Icon(Icons.send),
+              label: const Text('Contact WhatsApp'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                textStyle: const TextStyle(fontSize: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                final phone = contactNumber.replaceAll(RegExp(r'\D'), '');
+                final uri = Uri.parse('https://wa.me/$phone');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not launch WhatsApp')),
+                  );
+                }
+              },
+            ),
+
           ],
         ),
       ),
