@@ -1,5 +1,6 @@
 
 import 'package:bluenote/screens/notifications_screen.dart';
+import 'package:bluenote/screens/dashboard_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:flutter/material.dart';
@@ -40,9 +41,15 @@ class BottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           IconButton(icon: Icon(Icons.home), onPressed: () {}),
-          SizedBox(width: 36),
-          IconButton(icon: Icon(Icons.search), onPressed: () {}),
-          SizedBox(width: 66),
+          SizedBox(width: 38),
+          IconButton(icon: Icon(Icons.search), onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => DashboardScreen()),
+            );
+
+          }),
+          SizedBox(width: 68), // Space for FAB
 
           // 🔔 Real-time Notification Icon
           Stack(
