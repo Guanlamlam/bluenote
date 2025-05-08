@@ -246,12 +246,15 @@ class _PostWidgetState extends State<PostWidget> {
                       //   widget.author,
                       //   style: TextStyle(fontSize: 14),
                       // ),
-                      AutoSizeText(
-                        post.author,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        minFontSize: 10, // Minimum font size
-                        maxFontSize: 12, // Maximum font size
+                      SizedBox(
+                        width: 65,
+                        child: AutoSizeText(
+                          post.author,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          minFontSize: 10, // Minimum font size
+                          maxFontSize: 12, // Maximum font size
+                        ),
                       ),
                     ],
                   ),

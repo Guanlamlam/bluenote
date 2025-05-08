@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:bluenote/widgets/guanlam/bottom_nav_bar.dart';
 import 'package:bluenote/widgets/guanlam/custom_app_bar.dart';
+import 'dart:io' show Platform;
+
 
 /// A screen that shows full details of a Lost & Found entry.
 /// Expects all fields passed via constructor.
@@ -127,18 +129,27 @@ class DetailedScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () async {
-                final phone = contactNumber.replaceAll(RegExp(r'\D'), '');
-                final uri = Uri.parse('https://wa.me/$phone');
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not launch WhatsApp')),
+                onPressed: () async {
+                  final phone = contactNumber.replaceAll(RegExp(r'\D'), '');
+
+                  final text = Uri.encodeComponent(
+                    'Hi $contactName, I saw your lost-and-found post about "$item". Is it still available?',
                   );
-                }
-              },
-            ),
+
+                  final uri = Uri.parse('whatsapp://send?phone=$phone&text=$text');
+
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('WhatsApp not installed or failed to open.'),
+                      ),
+                    );
+                  }
+
+                },
+            )
 
           ],
         ),

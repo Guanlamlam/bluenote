@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/screens/post_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
@@ -316,9 +317,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Text(
-                      selectedPost.author,
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+                    SizedBox(
+                      width: 150,
+                      child: AutoSizeText(
+                        selectedPost.author,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        minFontSize: 15, // Minimum font size
+                        maxFontSize: 18, // Maximum font size
+                      ),
                     ),
                   ],
                 ),
@@ -734,8 +741,11 @@ class _CommentTileState extends State<CommentTile> {
                     children: [
                       Text(
                         widget.comment['username'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
+
                       SizedBox(height: 2),
 
                       Text(widget.comment['comment'] ?? ''),
