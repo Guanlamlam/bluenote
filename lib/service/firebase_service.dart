@@ -37,7 +37,7 @@ class FirebaseService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 5}) async {
+  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 6}) async {
     try {
       Query query = _firestore
           .collection('posts')

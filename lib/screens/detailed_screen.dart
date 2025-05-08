@@ -31,7 +31,7 @@ class DetailedScreen extends StatelessWidget {
     final formatter = DateFormat.yMMMMd().add_jm();
 
     return Scaffold(
-      appBar: CustomAppBar(),
+      // appBar: CustomAppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
@@ -154,7 +154,7 @@ class DetailedScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(),
+      // bottomNavigationBar: BottomNavBar(),
     );
   }
 }

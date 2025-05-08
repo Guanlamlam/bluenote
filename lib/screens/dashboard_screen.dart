@@ -39,31 +39,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .snapshots();
 
     return Scaffold(
-      appBar: CustomAppBar(), // <<== use your same custom AppBar
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Disable default back button
+        titleSpacing: 0, // Removes default padding
+        title: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Lost & Found Items',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      // <<== use your same custom AppBar
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Page Title
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Lost & Found Items',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
 
           // Search Bar
           Padding(
