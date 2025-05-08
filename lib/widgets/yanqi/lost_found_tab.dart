@@ -20,7 +20,6 @@ class LostFoundTab extends StatelessWidget {
         .orderBy('timestamp', descending: true)
         .snapshots();
 
-
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
@@ -36,52 +35,91 @@ class LostFoundTab extends StatelessWidget {
           return const Center(child: Text('No Lost & Found posts.'));
         }
 
-        return ListView.builder(
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final images = (data['images'] as List<dynamic>?)?.cast<String>() ?? [];
-
-            return Card(
-              margin: const EdgeInsets.all(8),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(10),
-                leading: images.isNotEmpty
-                    ? Image.network(
-                  images.first,
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.broken_image),
-                )
-                    : const Icon(Icons.image_not_supported, size: 60),
-                title: Text(data['item'] ?? ''),
-                subtitle: Text(data['location'] ?? ''),
-                trailing: PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'Edit') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => UpdateLostFoundPage(
-                            docId: docs[index].id,
-                            data: data,
-                          ),
-                        ),
-                      );
-                    } else if (value == 'Delete') {
-                      FirebaseFirestore.instance
-                          .collection('foundlost')
-                          .doc(docs[index].id)
-                          .delete();
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'Edit', child: Text('Edit')),
-                    PopupMenuItem(value: 'Delete', child: Text('Delete')),
-                  ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SizedBox(
+              height: constraints.maxHeight,
+              child: GridView.builder(
+                padding: const EdgeInsets.all(8),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,           // two columns
+                  crossAxisSpacing: 8,         // horizontal gap
+                  mainAxisSpacing: 8,          // vertical gap
+                  childAspectRatio: 3 / 2,     // adjust ratio to taste
                 ),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final images = (data['images'] as List<dynamic>?)?.cast<String>() ?? [];
+
+                  return Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (images.isNotEmpty)
+                            Image.network(
+                              images.first,
+                              height: 100,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 100),
+                            )
+                          else
+                            const Icon(Icons.image_not_supported, size: 100),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            data['item'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          Text(
+                            data['location'] ?? '',
+                            style: const TextStyle(color: Colors.grey),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          const Spacer(),
+
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'Edit') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => UpdateLostFoundPage(
+                                        docId: docs[index].id,
+                                        data: data,
+                                      ),
+                                    ),
+                                  );
+                                } else if (value == 'Delete') {
+                                  FirebaseFirestore.instance
+                                      .collection('foundlost')
+                                      .doc(docs[index].id)
+                                      .delete();
+                                }
+                              },
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(value: 'Edit', child: Text('Edit')),
+                                PopupMenuItem(value: 'Delete', child: Text('Delete')),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             );
           },

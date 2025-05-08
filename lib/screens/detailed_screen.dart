@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,7 +30,6 @@ class DetailedScreen extends StatelessWidget {
     final formatter = DateFormat.yMMMMd().add_jm();
 
     return Scaffold(
-      appBar: CustomAppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
@@ -127,23 +127,30 @@ class DetailedScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () async {
-                final phone = contactNumber.replaceAll(RegExp(r'\D'), '');
-                final uri = Uri.parse('https://wa.me/$phone');
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not launch WhatsApp')),
+                onPressed: () async {
+                  final phone = contactNumber.replaceAll(RegExp(r'\D'), '');
+                  final text = Uri.encodeComponent(
+                    'Hi $contactName, I saw your lost-&-found post about “$item”. Is it still available?',
                   );
-                }
-              },
-            ),
 
+                  final uri = Uri.parse('whatsapp://send?phone=$phone&text=$text');
+
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'WhatsApp not installed. Please install WhatsApp and try again.',
+                        ),
+                      ),
+                    );
+                  }
+                }
+            ),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(),
     );
   }
 }
