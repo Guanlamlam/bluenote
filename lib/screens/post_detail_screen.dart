@@ -13,6 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
+import 'auth/UserProfileScreenForUser.dart';
+import 'auth/user_profile_screen.dart';
 // import 'package:timeago/timeago.dart' as timeago;
 
 
@@ -103,11 +106,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   void _showCommentOptions(
-    BuildContext context,
-    Map<String, dynamic> comment,
-    String postId,
-    String userId,
-  ) {
+      BuildContext context,
+      Map<String, dynamic> comment,
+      String postId,
+      String userId,
+      ) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -159,10 +162,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   void _showDeleteConfirmationDialog(
-    BuildContext context,
-    String postId,
-    String commentId,
-  ) {
+      BuildContext context,
+      String postId,
+      String commentId,
+      ) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -307,13 +310,30 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      // radius: 16, //set the size of the avatar
-                      backgroundImage: CachedNetworkImageProvider(
-                        selectedPost.authorData?['profilePictureUrl']?.isEmpty ?? true
-                            ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
-                            : selectedPost.authorData!['profilePictureUrl'],
-
+                    GestureDetector(
+                      onTap: () {
+                        if (userId == selectedPost.authorUid) {
+                          // Navigate to your own profile
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+                          );
+                        } else {
+                          // Navigate to another user's profile
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UserProfileScreenForUser(uid: selectedPost.authorUid),
+                            ),
+                          );
+                        }
+                      },
+                      child: CircleAvatar(
+                        backgroundImage: CachedNetworkImageProvider(
+                          selectedPost.authorData?['profilePictureUrl']?.isEmpty ?? true
+                              ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
+                              : selectedPost.authorData!['profilePictureUrl'],
+                        ),
                       ),
                     ),
                     SizedBox(width: 8),
@@ -334,9 +354,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     icon: Icon(Icons.more_vert, color: Colors.black),
                     onPressed:
                         () => _showPostOptionsBottomSheet(
-                          context,
-                          selectedPost.postId,
-                        ),
+                      context,
+                      selectedPost.postId,
+                    ),
                   ),
               ],
             ),
@@ -404,13 +424,33 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        // radius: 32, //set the size of the avatar
-                        backgroundImage: CachedNetworkImageProvider(
-                          profilePicture ??
-                              'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
+                      GestureDetector(
+                        onTap: () {
+                          if (userId == selectedPost.authorUid) {
+                            // Navigate to your own profile
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+                            );
+                          } else {
+                            // Navigate to another user's profile
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserProfileScreenForUser(uid: selectedPost.authorUid),
+                              ),
+                            );
+                          }
+                        },
+                        child: CircleAvatar(
+                          backgroundImage: CachedNetworkImageProvider(
+                            selectedPost.authorData?['profilePictureUrl']?.isEmpty ?? true
+                                ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
+                                : selectedPost.authorData!['profilePictureUrl'],
+                          ),
                         ),
                       ),
+
                       SizedBox(width: 10),
                       Expanded(
                         child: TextField(
@@ -477,7 +517,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           _commentController.clear(); // Clear the input
                           FocusScope.of(context).requestFocus(_unfocusNode);
                           setState(
-                            () {
+                                () {
                               commentCount++;
                             },
                           ); // Rebuild the widget to trigger FutureBuilder to refresh
@@ -535,11 +575,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               postId: selectedPost.postId,
                               onLongPress:
                                   (selectedComment) => _showCommentOptions(
-                                    context,
-                                    selectedComment,
-                                    selectedPost.postId,
-                                    userId ?? '',
-                                  ),
+                                context,
+                                selectedComment,
+                                selectedPost.postId,
+                                userId ?? '',
+                              ),
                             );
                           },
                         ),
@@ -707,9 +747,9 @@ class _CommentTileState extends State<CommentTile> {
           child: Container(
             decoration: BoxDecoration(
               color:
-                  isHighlighted
-                      ? Colors.grey.withOpacity(0.1)
-                      : Colors.transparent,
+              isHighlighted
+                  ? Colors.grey.withOpacity(0.1)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -724,7 +764,7 @@ class _CommentTileState extends State<CommentTile> {
                     final userData = snapshot.data;
                     final profileUrl =
                         userData?['profilePictureUrl'] ??
-                        'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg';
+                            'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg';
 
                     return CircleAvatar(
                       backgroundImage: CachedNetworkImageProvider(profileUrl),
@@ -753,9 +793,9 @@ class _CommentTileState extends State<CommentTile> {
                       SizedBox(height: 2),
                       Text(
                         widget.comment['timestamp']
-                                ?.toDate()
-                                .toString()
-                                .substring(0, 16) ??
+                            ?.toDate()
+                            .toString()
+                            .substring(0, 16) ??
                             '',
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
@@ -787,9 +827,9 @@ class _CommentTileState extends State<CommentTile> {
                     likeCount == 0
                         ? SizedBox.shrink()
                         : Text(
-                          likeCount.toString(),
-                          style: TextStyle(fontSize: 14),
-                        ),
+                      likeCount.toString(),
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ],
                 ),
               ],

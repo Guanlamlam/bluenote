@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:bluenote/service/firebase_service.dart'; // Assuming this is where the uploadToCloudinary function is located
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,7 +19,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _email = '';
   String _gender = 'Male'; // Default gender
   String _bio = ''; // Bio field
-  String _profileImageUrl = ''; // Profile Image URL (Not used since no Firebase Storage)
+  String _profileImageUrl = ''; // Profile Image URL
 
   // TextEditing controllers
   TextEditingController _usernameController = TextEditingController();
@@ -45,7 +49,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _email = userData['email'] ?? '';
           _gender = userData['gender'] ?? 'Male';
           _bio = userData['bio'] ?? ''; // Set bio from Firestore
-          _profileImageUrl = userData['profilePictureUrl'] ?? ''; // This is not used, as we are not using Firebase Storage
+          _profileImageUrl = userData['profilePictureUrl'] ?? ''; // Profile picture URL
 
           // Set controllers with the fetched data
           _usernameController.text = _username;
@@ -58,14 +62,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  // Method to pick an image and upload to Cloudinary
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      // Picked file (Image)
+      final imageFile = File(pickedFile.path); // Ensure we use a File object
+
+      try {
+        // Upload image to Cloudinary and get the URL
+        String? uploadedImageUrl = await FirebaseService.instance.uploadToCloudinary(imageFile);
+
+        if (uploadedImageUrl != null) {
+          setState(() {
+            _profileImageUrl = uploadedImageUrl;  // Update profileImageUrl with the Cloudinary URL
+          });
+          print("Image uploaded to Cloudinary: $uploadedImageUrl");
+        }
+      } catch (e) {
+        print("Error uploading image: $e");
+      }
+    }
+  }
+
   // Save updated profile data to Firestore
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        // Debugging: Check what the bio value is before updating
-        print("Saving bio: $_bio");
-
         final String finalBio = _bio.isEmpty ? 'No bio available' : _bio; // Default bio if empty
 
         // Save profile data to Firestore
@@ -74,10 +100,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'email': _email,
           'gender': _gender,
           'bio': finalBio,  // Save bio here
+          'profilePictureUrl': _profileImageUrl,  // Save profile picture URL
         });
-
-        // Debugging: Confirm the bio has been saved
-        print("Bio saved to Firestore: $finalBio");
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +111,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // Navigate back to the Profile screen
         Navigator.pop(context);  // This will go back to the previous screen (Profile screen)
       } catch (e) {
-        // Debugging: Log errors when updating Firestore
         print("Error updating profile: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error updating profile: $e')),
@@ -121,21 +144,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               // Profile Picture Section
               Center(
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundImage: _profileImageUrl.isNotEmpty
-                      ? NetworkImage(_profileImageUrl) // Load profile image from URL
-                      : const AssetImage('assets/images/default-profile.jpg') as ImageProvider, // Default image
+                child: GestureDetector(
+                  onTap: _pickAndUploadImage, // Trigger image picker
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundImage: _profileImageUrl.isNotEmpty
+                        ? NetworkImage(_profileImageUrl) // Load profile image from URL
+                        : const AssetImage('assets/images/default-profile.jpg') as ImageProvider, // Default image
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              // Change Profile Picture Button (if you decide to add later)
-              // Center(
-              //   child: TextButton(
-              //     onPressed: _pickProfileImage,
-              //     child: const Text('Change Profile Picture'),
-              //   ),
-              // ),
               const SizedBox(height: 16),
 
               // Username Field

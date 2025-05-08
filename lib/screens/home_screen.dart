@@ -166,8 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: CustomAppBar(),
       body:
           userId == null
-              // ? Center(child: Text("No user is currently signed in."))
-              // : isLoading
               ? Center(child: _buildSkeletonLoader())
               : RefreshIndicator(
                 onRefresh: _refreshPosts,
@@ -180,36 +178,41 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         margin: const EdgeInsets.symmetric(vertical: 10.0),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
                           children: [
-                            CategoryButton(
-                              text: 'All',
-                              isSelected: selectedCategory == 'All',
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = 'All';
-                                });
-                              },
-                            ),
-                            SizedBox(width: 12),
-                            CategoryButton(
-                              text: 'Events',
-                              isSelected: selectedCategory == 'Events',
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = 'Events';
-                                });
-                              },
-                            ),
-                            SizedBox(width: 12),
-                            CategoryButton(
-                              text: 'Q&A',
-                              isSelected: selectedCategory == 'Q&A',
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = 'Q&A';
-                                });
-                              },
+                            Row(
+                              children: [
+                                CategoryButton(
+                                  text: 'All',
+                                  isSelected: selectedCategory == 'All',
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCategory = 'All';
+                                    });
+                                  },
+                                ),
+                                SizedBox(width: 12),
+                                CategoryButton(
+                                  text: 'Events',
+                                  isSelected: selectedCategory == 'Events',
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCategory = 'Events';
+                                    });
+                                  },
+                                ),
+                                SizedBox(width: 12),
+                                CategoryButton(
+                                  text: 'Q&A',
+                                  isSelected: selectedCategory == 'Q&A',
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCategory = 'Q&A';
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                             // SizedBox(width: 12),
                             TextButton(
@@ -221,7 +224,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                         (context) => BrowsingHistoryScreen(),
                                   ),
                                 );
+
                               },
+                              style: TextButton.styleFrom(
+                                foregroundColor: Theme.of(context).primaryColor, // Change this to your desired color
+                              ),
                               child: Text('History'),
                             ),
                           ],

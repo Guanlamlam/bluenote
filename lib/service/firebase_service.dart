@@ -37,7 +37,7 @@ class FirebaseService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 5}) async {
+  Future<List<Map<String, dynamic>>> getPosts({DocumentSnapshot? lastDoc, int limit = 6}) async {
     try {
       Query query = _firestore
           .collection('posts')
@@ -78,7 +78,6 @@ class FirebaseService {
       final snapshot = await _firestore
           .collection('posts')
           .orderBy('dateTime', descending: true)
-          .limit(10) //only show 10
           .get();
 
       final lowerQuery = query.toLowerCase();
@@ -431,10 +430,36 @@ class FirebaseService {
         .map((snapshot) => snapshot.docs.length);
   }
 
+// Function to send a message with an image URL
+  Future<void> sendMessageWithImage(String chatroomId, File imageFile) async {
+    String? imageUrl = await uploadToCloudinary(imageFile);
 
+    if (imageUrl != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('chatrooms')
+            .doc(chatroomId)
+            .collection('messages')
+            .add({
+          'senderId': FirebaseAuth.instance.currentUser?.uid,
+          'message': imageUrl, // Sending the image URL as the message
+          'timestamp': FieldValue.serverTimestamp(),
+          'read': false,
+        });
 
-
-
+        // Update last message in chatroom
+        await FirebaseFirestore.instance
+            .collection('chatrooms')
+            .doc(chatroomId)
+            .update({
+          'lastMessage': imageUrl,
+          'lastTimestamp': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        print("Error sending message with image: $e");
+      }
+    }
+  }
 
 
 }

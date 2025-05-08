@@ -170,9 +170,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 children: [
                   Container(
                     color:
-                        (notification['viewed'] ?? false)
-                            ? Colors.white
-                            : Colors.grey[200], // grey background if viewed
+                    (notification['viewed'] ?? false)
+                        ? Colors.white
+                        : Colors.grey[200], // grey background if viewed
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8.0,
                       vertical: 16.0,
@@ -232,15 +232,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           borderRadius: BorderRadius.circular(6),
                           child: CachedNetworkImage(
                             imageUrl:
-                                (notification['postThumbnail'] ?? '').isNotEmpty
-                                    ? notification['postThumbnail']
-                                    : 'https://i.pinimg.com/564x/0c/bb/aa/0cbbaab0deff7f188a7762d9569bf1b3.jpg',
+                            (notification['postThumbnail'] ?? '').isNotEmpty
+                                ? notification['postThumbnail']
+                                : 'https://i.pinimg.com/564x/0c/bb/aa/0cbbaab0deff7f188a7762d9569bf1b3.jpg',
                             width: 45,
                             height: 45,
                             fit: BoxFit.cover,
                             errorWidget:
                                 (context, url, error) =>
-                                    const Icon(Icons.error, size: 45),
+                            const Icon(Icons.error, size: 45),
                           ),
                         ),
 
