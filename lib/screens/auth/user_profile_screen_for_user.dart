@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bluenote/widgets/yanqi/edit_profile_button.dart';
 import 'package:bluenote/widgets/yanqi/tabs.dart';
 import 'package:bluenote/screens/auth/login_screen.dart';
-import 'package:bluenote/screens/ChatScreen.dart';
+import 'package:bluenote/screens/chat_screen.dart';
 
 import '../../widgets/guanlam/bottom_nav_bar.dart';
 

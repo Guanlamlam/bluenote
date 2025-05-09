@@ -13,8 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
-import 'auth/UserProfileScreenForUser.dart';
+import 'package:bluenote/screens/auth/user_profile_screen_for_user.dart';
+import 'package:bluenote/screens/auth/user_profile_screen.dart';
 import 'auth/user_profile_screen.dart';
 // import 'package:timeago/timeago.dart' as timeago;
 

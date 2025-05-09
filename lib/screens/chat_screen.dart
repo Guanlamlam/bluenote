@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:bluenote/screens/auth/UserProfileScreenForUser.dart';  // Import UserProfileScreenForUser
+import 'package:bluenote/screens/auth/user_profile_screen_for_user.dart';  // Import UserProfileScreenForUser
 import 'package:bluenote/service/firebase_service.dart';
 
 class ChatScreen extends StatefulWidget {

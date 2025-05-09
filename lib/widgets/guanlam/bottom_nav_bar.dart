@@ -6,7 +6,7 @@ import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:bluenote/screens/auth/user_profile_screen.dart';
-import 'package:bluenote/screens/ConversationListScreen.dart';
+import 'package:bluenote/screens/conversation_list_screen.dart';
 
 class BottomNavBar extends StatelessWidget {
   @override
