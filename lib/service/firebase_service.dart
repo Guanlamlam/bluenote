@@ -78,7 +78,6 @@ class FirebaseService {
       final snapshot = await _firestore
           .collection('posts')
           .orderBy('dateTime', descending: true)
-          .limit(10) //only show 10
           .get();
 
       final lowerQuery = query.toLowerCase();
