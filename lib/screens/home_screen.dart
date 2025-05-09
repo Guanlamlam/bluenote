@@ -1,16 +1,18 @@
-import 'package:bluenote/service/firebase_service.dart';
+import 'package:bluenote/providers/post_provider.dart';
+import 'package:bluenote/screens/auth/post/browsing_history_screen.dart';
+import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:bluenote/widgets/guanlam/post_widget.dart';
+import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 import '../widgets/guanlam/category_button.dart';
 import '../widgets/guanlam/custom_app_bar.dart';
 import '../widgets/guanlam/bottom_nav_bar.dart';
 import 'post_screen.dart';
-
-import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,12 +22,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String? userId;
+  String? userName;
+  String? profilePicture;
 
-  late User? user;
-  Map<String, dynamic> userData = {};
-  List<Map<String, dynamic>> posts = [];
   bool isLoading = true;
-
   String selectedCategory = 'All';
 
   ///!!!
@@ -34,64 +35,58 @@ class _HomeScreenState extends State<HomeScreen> {
   DocumentSnapshot? lastDoc;
   final ScrollController _scrollController = ScrollController();
 
-
-
-
-
   @override
   void initState() {
     super.initState();
-    user = FirebaseService.instance.getCurrentUser();
-    if (user != null) {
-      _loadInitialData(user!.uid);
-    }
+    _loadUserData();
+    _loadInitialData();
     requestPermission();
+
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-        _loadMorePosts();
+      // Check if scroll position is near the end of the list (for infinite scroll)
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300 && !isFetchingMore && hasMore) {
+        setState(() {
+          isFetchingMore = true; // Show the loader
+        });
+
+        // Fetch more posts asynchronously
+        Provider.of<PostProvider>(context, listen: false).fetchMorePosts().then((_) {
+          setState(() {
+            isFetchingMore = false; // Hide the loader once fetching is done
+          });
+        }).catchError((error) {
+          setState(() {
+            isFetchingMore = false; // Hide the loader even if there's an error
+          });
+        });
       }
     });
-
-
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+
     super.dispose();
   }
 
-  Future<void> _loadInitialData(String uid) async {
-    final fetchedUserData = await FirebaseService.instance.getUserData(uid);
-    final fetchedPosts = await FirebaseService.instance.getPosts();
 
-    if (fetchedPosts.isNotEmpty) {
-      lastDoc = fetchedPosts.last['snapshot'];
-    }
+
+  // Fetch user data asynchronously in initState()
+  Future<void> _loadUserData() async {
+    // Retrieve cached user info
+    final userData = await getCachedUserData();
+    userId = userData['userId'];
+    userName = userData['username'];
+    profilePicture = userData['profilePictureUrl'];
+  }
+
+  Future<void> _loadInitialData() async {
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    await postProvider.fetchMorePosts(); // Fetch posts from the provider
 
     setState(() {
-      userData = fetchedUserData;
-      posts = fetchedPosts;
       isLoading = false;
     });
-  }
-  Future<void> _loadMorePosts() async {
-    if (isFetchingMore || !hasMore) return;
-
-    setState(() => isFetchingMore = true);
-
-    final fetchedPosts = await FirebaseService.instance.getPosts(lastDoc: lastDoc);
-
-    if (fetchedPosts.isNotEmpty) {
-      lastDoc = fetchedPosts.last['snapshot'];
-      setState(() {
-        posts.addAll(fetchedPosts);
-      });
-    } else {
-      setState(() => hasMore = false);
-    }
-
-    setState(() => isFetchingMore = false);
   }
 
 
@@ -113,32 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
-  // Future<void> _loadInitialData(String uid) async {
-  //   final fetchedUserData = await FirebaseService.instance.getUserData(uid);
-  //   final fetchedPosts = await FirebaseService.instance.getPosts();
-  //   setState(() {
-  //     userData = fetchedUserData;
-  //     posts = fetchedPosts;
-  //     isLoading = false;
-  //   });
-  // }
-
   Future<void> _refreshPosts() async {
-    if (user == null) return;
-    final fetchedPosts = await FirebaseService.instance.getPosts();
-    setState(() {
-      posts = fetchedPosts;
-    });
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    await postProvider.fetchMorePosts();
   }
 
-  List<Map<String, dynamic>> _filterPostsByCategory(
-    List<Map<String, dynamic>> allPosts,
+  List<PostModel> _filterPostsByCategory(
+    List<PostModel> allPosts, // Pass a list of posts instead of a single post
   ) {
     if (selectedCategory == 'All') return allPosts;
-    return allPosts
-        .where((post) => post['category'] == selectedCategory)
-        .toList();
+
+    return allPosts.where((post) => post.category == selectedCategory).toList();
   }
 
   Widget _buildSkeletonLoader() {
@@ -151,7 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisCount: 2, // Two columns
           crossAxisSpacing: 2.0, // Horizontal spacing between columns
           mainAxisSpacing: 2.0, // Vertical spacing between rows
-          childAspectRatio: 0.7, // Adjust to get the desired height-to-width ratio
+          childAspectRatio:
+              0.7, // Adjust to get the desired height-to-width ratio
         ),
         itemCount: 6, // Number of skeletons to show
         itemBuilder: (context, index) {
@@ -174,129 +155,130 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
-
-
   @override
   Widget build(BuildContext context) {
+    final postProvider = Provider.of<PostProvider>(context);
+    final posts = postProvider.posts;
     final filteredPosts = _filterPostsByCategory(posts);
 
     return Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: CustomAppBar(),
-        body: user == null
-            ? Center(child: Text("No user is currently signed in."))
-            : isLoading
-            ? Center(child: _buildSkeletonLoader())
-            : RefreshIndicator(
-          onRefresh: _refreshPosts,
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // Category buttons row
-              SliverToBoxAdapter(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  margin: const EdgeInsets.symmetric(vertical: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      CategoryButton(
-                        text: 'All',
-                        isSelected: selectedCategory == 'All',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'All';
-                          });
-                        },
+      resizeToAvoidBottomInset: false,
+      appBar: CustomAppBar(),
+      body:
+          userId == null
+              // ? Center(child: Text("No user is currently signed in."))
+              // : isLoading
+              ? Center(child: _buildSkeletonLoader())
+              : RefreshIndicator(
+                onRefresh: _refreshPosts,
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    // Category buttons row
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        margin: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            CategoryButton(
+                              text: 'All',
+                              isSelected: selectedCategory == 'All',
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = 'All';
+                                });
+                              },
+                            ),
+                            SizedBox(width: 12),
+                            CategoryButton(
+                              text: 'Events',
+                              isSelected: selectedCategory == 'Events',
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = 'Events';
+                                });
+                              },
+                            ),
+                            SizedBox(width: 12),
+                            CategoryButton(
+                              text: 'Q&A',
+                              isSelected: selectedCategory == 'Q&A',
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = 'Q&A';
+                                });
+                              },
+                            ),
+                            // SizedBox(width: 12),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => BrowsingHistoryScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text('History'),
+                            ),
+                          ],
+                        ),
                       ),
-                      SizedBox(width: 12),
-                      CategoryButton(
-                        text: 'Events',
-                        isSelected: selectedCategory == 'Events',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'Events';
-                          });
-                        },
+                    ),
+
+                    // Content water fall layout
+                    SliverWaterfallFlow(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final post = filteredPosts[index];
+
+                        return PostWidget(post: post);
+                      }, childCount: filteredPosts.length),
+                      gridDelegate:
+                          SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                          ),
+                    ),
+
+                    // Footer with loading indicator or no more posts message
+                    SliverToBoxAdapter(
+                      child: Column(
+                        children: [
+                          if (isFetchingMore)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 84),
+                              child: CircularProgressIndicator(),
+                            )
+                          else if (!postProvider.hasMore)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 84),
+                              child: Text('- No more -'),
+                            ),
+
+
+                        ],
                       ),
-                      SizedBox(width: 12),
-                      CategoryButton(
-                        text: 'Q&A',
-                        isSelected: selectedCategory == 'Q&A',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'Q&A';
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Content water fall layout
-              SliverWaterfallFlow(
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    final post = filteredPosts[index];
-                    return PostWidget(
-                      postId: post['id'],
-                      author: post['author'] ?? 'Unknown',
-                      authorUid: post['authorUid'] ?? '',
-                      title: post['title'] ?? 'Untitled Post',
-                      content: post['content'] ?? 'No description',
-                      imageUrls: (post['image'] as List?)?.whereType<String>().toList() ?? [],
-                      initialLikes: post['likes'] ?? 0,
-                      dateTime: post['dateTime'],
-                      user: user!,
-                    );
-                  },
-                  childCount: filteredPosts.length,
-                ),
-                gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                ),
-              ),
-
-
-
-              // Footer with loading indicator or no more posts message
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    if (isFetchingMore)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: CircularProgressIndicator(),
-                      )
-                    else if (!hasMore)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Text('- No more -'),
-                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Theme.of(context).primaryColor,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PostScreen()),
-            );
-          },
-          shape: CircleBorder(),
-          child: Icon(Icons.add, color: Colors.white, size: 35),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomNavBar(),
-      );
-
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).primaryColor,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PostScreen()),
+          );
+        },
+        shape: CircleBorder(),
+        child: Icon(Icons.add, color: Colors.white, size: 35),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomNavBar(),
+    );
   }
-
 }
+
+

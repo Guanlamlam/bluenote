@@ -1,10 +1,11 @@
+
 import 'package:bluenote/screens/notifications_screen.dart';
 import 'package:bluenote/screens/dashboard_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:flutter/material.dart';
 import 'package:bluenote/screens/auth/user_profile_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 
 class BottomNavBar extends StatelessWidget {
@@ -88,7 +89,7 @@ class BottomNavBar extends StatelessWidget {
             ],
           ),
 
-          SizedBox(width: 38),
+          SizedBox(width: 36),
           IconButton(
             icon: Icon(Icons.person),
             onPressed: () {
