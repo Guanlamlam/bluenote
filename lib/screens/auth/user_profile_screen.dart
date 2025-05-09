@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bluenote/screens/SettingsScreen.dart'; // Add Settings Screen Import
+import 'package:bluenote/screens/setting_screen.dart'; // Add Settings Screen Import
 import 'package:bluenote/widgets/yanqi/edit_profile_button.dart';
 import 'package:bluenote/widgets/yanqi/tabs.dart'; // Tab widget for 'Post' and 'Liked'
 import 'package:bluenote/screens/auth/login_screen.dart';
 
 import '../../widgets/guanlam/bottom_nav_bar.dart';
-import '../SettingsScreen.dart'; // Login screen for when user is not logged in
+import '../setting_screen.dart'; // Login screen for when user is not logged in
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
