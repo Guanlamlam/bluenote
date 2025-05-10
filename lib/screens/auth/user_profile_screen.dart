@@ -3,27 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bluenote/widgets/yanqi/edit_profile_button.dart'; // Edit profile button
 import 'package:bluenote/widgets/yanqi/tabs.dart'; // Tab widget for 'Post' and 'Liked'
-import 'package:bluenote/screens/auth/login_screen.dart'; // Login screen for when user is not logged in
+import 'package:bluenote/screens/auth/login_screen.dart';
+import '../../widgets/guanlam/bottom_nav_bar.dart'; // Login screen for when user is not logged in
+import 'package:bluenote/screens/setting_screen.dart'; // Import the SettingsScreen
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
-
-  // Method to handle logout
-  Future<void> _logout(BuildContext context) async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      // After signing out, navigate back to the LoginScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    } catch (e) {
-      print('Error during logout: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to log out: $e')),
-      );
-    }
-  }
 
   // Fetch user data from Firestore
   Future<Map<String, dynamic>> _getUserData(String uid) async {
@@ -51,49 +36,13 @@ class UserProfileScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('User Profile'),
         actions: [
+          // Navigate to settings screen when the settings icon is clicked
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Settings'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _logout(context),
-                            splashColor: Colors.blue.withOpacity(0.2),
-                            highlightColor: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Ink(
-                              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.blue),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'Log Out',
-                                style: TextStyle(color: Colors.blue),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close settings dialog
-                        },
-                        child: const Text('Cancel'),
-                      ),
-                    ],
-                  );
-                },
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()), // Navigate to the settings screen
               );
             },
           ),
@@ -158,8 +107,8 @@ class UserProfileScreen extends StatelessWidget {
                     const EditProfileButton(),
                     const SizedBox(height: 20),
 
-                    // Tabs for Post and Liked
-                    const Tabs(selectedTab: 'Post'),  // Assuming you have a tabs widget for Post and Liked
+                    // Tabs for Post, Liked, and Lost Found
+                    Tabs(selectedTab: 'Post', userId: user.uid), // Pass the userId to Tabs
                   ],
                 );
               },
@@ -167,6 +116,7 @@ class UserProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavBar(),
     );
   }
 }

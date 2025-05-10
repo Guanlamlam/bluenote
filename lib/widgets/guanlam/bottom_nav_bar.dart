@@ -1,13 +1,12 @@
-
 import 'package:bluenote/screens/home_screen.dart';
 import 'package:bluenote/screens/notifications_screen.dart';
 import 'package:bluenote/screens/dashboard_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:bluenote/screens/auth/user_profile_screen.dart';
-
-
+import 'package:bluenote/screens/conversation_list_screen.dart';
 
 class BottomNavBar extends StatelessWidget {
   @override
@@ -25,10 +24,9 @@ class BottomNavBar extends StatelessWidget {
           stream: FirebaseService.instance.getUnreadNotificationCountStream(userId),
           builder: (context, snapshot) {
             final unreadCount = snapshot.data ?? 0;
-            return _buildBottomBar(context,unreadCount);
+            return _buildBottomBar(context, unreadCount);
           },
         );
-
       },
     );
   }
@@ -41,61 +39,40 @@ class BottomNavBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
+          // Home Icon
           IconButton(icon: Icon(Icons.home), onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => (HomeScreen())),
+              MaterialPageRoute(builder: (context) => HomeScreen()),
             );
           }),
+
           SizedBox(width: 38),
+
+          // Search Icon
           IconButton(icon: Icon(Icons.search), onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => DashboardScreen()),
             );
-
           }),
+
           SizedBox(width: 68), // Space for FAB
 
-          // 🔔 Real-time Notification Icon
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(Icons.notifications),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => NotificationsScreen()),
-                  );
-                },
-              ),
-              if (unreadCount > 0)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Center(
-                      child: Text(
-                        unreadCount > 9 ? '9+' : unreadCount.toString(),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          // Messages Icon (without count)
+          IconButton(
+            icon: Icon(Icons.message),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ConversationListScreen()),
+              );
+            },
           ),
 
           SizedBox(width: 36),
+
+          // User Profile Icon
           IconButton(
             icon: Icon(Icons.person),
             onPressed: () {
@@ -110,4 +87,3 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 }
-

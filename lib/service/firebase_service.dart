@@ -430,10 +430,36 @@ class FirebaseService {
         .map((snapshot) => snapshot.docs.length);
   }
 
+// Function to send a message with an image URL
+  Future<void> sendMessageWithImage(String chatroomId, File imageFile) async {
+    String? imageUrl = await uploadToCloudinary(imageFile);
 
+    if (imageUrl != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('chatrooms')
+            .doc(chatroomId)
+            .collection('messages')
+            .add({
+          'senderId': FirebaseAuth.instance.currentUser?.uid,
+          'message': imageUrl, // Sending the image URL as the message
+          'timestamp': FieldValue.serverTimestamp(),
+          'read': false,
+        });
 
-
-
+        // Update last message in chatroom
+        await FirebaseFirestore.instance
+            .collection('chatrooms')
+            .doc(chatroomId)
+            .update({
+          'lastMessage': imageUrl,
+          'lastTimestamp': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        print("Error sending message with image: $e");
+      }
+    }
+  }
 
 
 }
