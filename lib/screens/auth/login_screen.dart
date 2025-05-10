@@ -10,12 +10,7 @@ class LoginScreen extends StatelessWidget {
       resizeToAvoidBottomInset: true, // Prevent keyboard overflow
       appBar: AppBar(
         title: const Text('Login'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context); // Navigate back to previous screen
-          },
-        ),
+
       ),
       body: SafeArea(
         child: LoginForm(), // Your login form widget

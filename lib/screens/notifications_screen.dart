@@ -1,6 +1,7 @@
 import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
+import 'package:bluenote/widgets/guanlam/app_snack_bar.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -113,10 +114,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   notificationId,
                 );
               }
-              // FirebaseService.instance.deleteNotification(notification['id']);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Notification deleted")));
+              AppSnackBar.show(context, "Notification deleted");
             },
             child: GestureDetector(
               onTap: () async {
@@ -155,14 +153,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         MaterialPageRoute(builder: (_) => PostDetailScreen()),
                       );
                     } else {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text("Post not found")));
+
+                      AppSnackBar.show(context, "Post not found");
+
                     }
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Failed to load post: $e")),
-                    );
+                    AppSnackBar.show(context, "Failed to load post: $e");
+
                   }
                 }
               },

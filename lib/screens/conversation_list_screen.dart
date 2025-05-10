@@ -112,7 +112,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                     if (unreadCount > 0)
                       Positioned(
                         right: 0,
-                        top: 0,
+                        top: -1,
                         child: Container(
                           padding: EdgeInsets.all(3), // Reduced padding
                           decoration: BoxDecoration(

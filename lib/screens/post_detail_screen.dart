@@ -3,6 +3,7 @@ import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/screens/post_screen.dart';
 import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/service/notification_service.dart';
+import 'package:bluenote/widgets/guanlam/app_snack_bar.dart';
 import 'package:bluenote/widgets/guanlam/database/browsing_history_database.dart';
 import 'package:bluenote/widgets/guanlam/image_carousel.dart';
 import 'package:bluenote/widgets/guanlam/models/browsing_history_model.dart';
@@ -74,9 +75,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       await BrowsingHistoryDatabase.instance.insertOrUpdateHistory(history);
       await BrowsingHistoryDatabase.instance.maintainHistoryLimit(6);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save post to history: $e')),
-      );
+      AppSnackBar.show(context, "Failed to save post to history: $e");
+
     }
 
   }
@@ -131,9 +131,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     ClipboardData(text: comment['comment'] ?? ''),
                   );
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Comment copied to clipboard")),
-                  );
+                  AppSnackBar.show(context, "Comment copied to clipboard");
+
                 },
               ),
             ),
@@ -267,6 +266,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 Navigator.of(context).pop(); // Close the dialog
                 Navigator.of(context).pop(); // Pop the post detail screen
                 await Provider.of<PostProvider>(context, listen: false).deletePost(postId);
+
               },
               child: Text("Delete", style: TextStyle(color: Colors.redAccent)),
             ),
@@ -424,30 +424,37 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (userId == selectedPost.authorUid) {
-                            // Navigate to your own profile
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const UserProfileScreen()),
-                            );
-                          } else {
-                            // Navigate to another user's profile
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UserProfileScreenForUser(uid: selectedPost.authorUid),
-                              ),
-                            );
-                          }
-                        },
-                        child: CircleAvatar(
-                          backgroundImage: CachedNetworkImageProvider(
-                            selectedPost.authorData?['profilePictureUrl']?.isEmpty ?? true
-                                ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
-                                : selectedPost.authorData!['profilePictureUrl'],
-                          ),
+                      // GestureDetector(
+                      //   onTap: () {
+                      //     if (userId == selectedPost.authorUid) {
+                      //       // Navigate to your own profile
+                      //       Navigator.push(
+                      //         context,
+                      //         MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+                      //       );
+                      //     } else {
+                      //       // Navigate to another user's profile
+                      //       Navigator.push(
+                      //         context,
+                      //         MaterialPageRoute(
+                      //           builder: (context) => UserProfileScreenForUser(uid: selectedPost.authorUid),
+                      //         ),
+                      //       );
+                      //     }
+                      //   },
+                      //   child: CircleAvatar(
+                      //     backgroundImage: CachedNetworkImageProvider(
+                      //       selectedPost.authorData?['profilePictureUrl']?.isEmpty ?? true
+                      //           ? 'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg'
+                      //           : selectedPost.authorData!['profilePictureUrl'],
+                      //     ),
+                      //   ),
+                      // ),
+                      CircleAvatar(
+                        // radius: 32, //set the size of the avatar
+                        backgroundImage: CachedNetworkImageProvider(
+                          profilePicture ??
+                              'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg',
                         ),
                       ),
 
@@ -466,9 +473,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           // TODO: Handle comment posting
                           String comment = _commentController.text.trim();
                           if (comment.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Please enter a comment')),
-                            );
+                            AppSnackBar.show(context, "Please enter a comment");
+
                             return; // exit early
                           }
 
@@ -506,9 +512,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 postThumbnail: selectedPost.imageUrls[0],
                               );
                             } catch (e) {
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text('Failed to send notification')));
+                              AppSnackBar.show(context, "Failed to send notification");
+
                             }
                           }
 
@@ -703,7 +708,8 @@ class _CommentTileState extends State<CommentTile> {
     String authorFcmToken = authorFCM['fcmToken'];
 
     // Send notification to the post author except the author like their own posts
-    if (authorFcmToken.isNotEmpty &&
+    if (hasLiked &&
+        authorFcmToken.isNotEmpty &&
         userName != null &&
         userId != authorId) {
       NotificationService.sendPushNotification(
@@ -722,9 +728,8 @@ class _CommentTileState extends State<CommentTile> {
           postThumbnail: post!.imageUrls[0],
         );
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to send notification')));
+        AppSnackBar.show(context, "Failed to send notification");
+
       }
     }
   }
@@ -766,9 +771,20 @@ class _CommentTileState extends State<CommentTile> {
                         userData?['profilePictureUrl'] ??
                             'https://www.shutterstock.com/image-vector/vector-flat-illustration-grayscale-avatar-600nw-2281862025.jpg';
 
-                    return CircleAvatar(
-                      backgroundImage: CachedNetworkImageProvider(profileUrl),
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreenForUser(uid: widget.comment['userId']),
+                          ),
+                        );
+                      },
+                      child: CircleAvatar(
+                        backgroundImage: CachedNetworkImageProvider(profileUrl),
+                      ),
                     );
+
                   },
                 ),
 

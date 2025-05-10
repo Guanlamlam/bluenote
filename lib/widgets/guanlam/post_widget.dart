@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/screens/post_detail_screen.dart';
 import 'package:bluenote/service/notification_service.dart';
+import 'package:bluenote/widgets/guanlam/app_snack_bar.dart';
 import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:bluenote/widgets/yanqi/auth/login_form.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -109,17 +110,16 @@ class _PostWidgetState extends State<PostWidget> {
               postThumbnail: widget.post.imageUrls[0],
             );
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('❌ ❌ Failed to send notification')),
-            );
+
+            AppSnackBar.show(context, 'Failed to send notification');
+
           }
         }
       }
     } catch (e) {
       // Show error to the user
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error toggling like: $e')));
+      AppSnackBar.show(context, 'Error toggling like: $e');
+
     }
   }
 

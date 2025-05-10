@@ -18,11 +18,24 @@ class PostProvider extends ChangeNotifier {
   List<PostModel> get userPosts => _userPosts;
   List<PostModel> get userLikePosts => _userLikePosts;
 
-
   DocumentSnapshot? _lastDoc;
+
+
   bool _hasMore = true;
 
   bool get hasMore => _hasMore;
+
+  // Setter for lastDoc
+  set lastDoc(DocumentSnapshot? doc) {
+    _lastDoc = doc;
+    notifyListeners();
+  }
+
+  // Setter for hasMore
+  set hasMore(bool value) {
+    _hasMore = value;
+    notifyListeners();
+  }
 
   Future<void> fetchMorePosts() async {
     if (!_hasMore || _isLoading) return;

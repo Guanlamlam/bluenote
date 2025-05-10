@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:bluenote/widgets/guanlam/app_snack_bar.dart';
 import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -296,11 +297,12 @@ class FirebaseService {
           .doc(commentId)
           .delete();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Comment deleted successfully")));
+      AppSnackBar.show(context, "Comment deleted successfully");
+
+
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to delete comment: $e")));
+      AppSnackBar.show(context, "Failed to delete comment: $e");
+
     }
   }
 

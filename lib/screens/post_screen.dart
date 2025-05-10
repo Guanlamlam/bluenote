@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:bluenote/providers/post_provider.dart';
 import 'package:bluenote/service/firebase_service.dart';
+import 'package:bluenote/widgets/guanlam/app_snack_bar.dart';
 import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -57,9 +58,8 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
 
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You can only select up to 3 images.')),
-      );
+      AppSnackBar.show(context, "You can only select up to 3 images.");
+
       return;
     }
     final pickedFile = await _picker.pickImage(source: source);
@@ -146,9 +146,8 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
           );
           postProvider.addPost(newPost);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Post uploaded successfully!')),
-          );
+          AppSnackBar.show(context, "Post uploaded successfully!");
+
 
           await _clearDraft();
           Navigator.pop(context); // Navigate back
@@ -172,9 +171,8 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
           );
           postProvider.updatePost(updatedPost);
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Post updated successfully!')));
+
+          AppSnackBar.show(context, "Post updated successfully!");
 
           await _clearDraft();
           Navigator.pop(context); // Navigate back
@@ -182,9 +180,8 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
 
         }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to upload post: $e')));
+        AppSnackBar.show(context, 'Failed to upload post: $e');
+
       } finally {
         if (mounted) setState(() => _isLoading = false); // Stop loading
       }

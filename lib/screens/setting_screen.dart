@@ -79,7 +79,6 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.pinkAccent,  // Improved color for the AppBar
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -90,13 +89,16 @@ class SettingsScreen extends StatelessWidget {
             // Logout Button
             ElevatedButton(
               onPressed: () => _logout(context),
-              child: const Text('Log Out'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0), backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),  // Blue color for Log Out button
                 minimumSize: Size(double.infinity, 50),  // Make the button full width
+
+              ),
+              child: Text('Log Out',
+                  style: TextStyle(color: Colors.white)
               ),
             ),
             const SizedBox(height: 20), // Spacing between buttons
@@ -104,7 +106,6 @@ class SettingsScreen extends StatelessWidget {
             // Delete Account Button
             ElevatedButton(
               onPressed: () => _deleteAccount(context),
-              child: const Text('Delete Account'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0), backgroundColor: Colors.red,
                 shape: RoundedRectangleBorder(
@@ -112,6 +113,7 @@ class SettingsScreen extends StatelessWidget {
                 ),  // Red color for Delete Account button
                 minimumSize: Size(double.infinity, 50),  // Make the button full width
               ),
+              child: const Text('Delete Account', style: TextStyle(color: Colors.white) ),
             ),
           ],
         ),

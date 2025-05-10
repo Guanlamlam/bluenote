@@ -110,8 +110,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshPosts() async {
     final postProvider = Provider.of<PostProvider>(context, listen: false);
+
+    // Clear the existing posts before fetching fresh ones
+    postProvider.posts.clear();
+    postProvider.lastDoc = null; // Reset last document for pagination if needed
+    postProvider.hasMore = true; // Reset pagination flag
+
+    // Fetch new posts from the start
     await postProvider.fetchMorePosts();
   }
+
 
   List<PostModel> _filterPostsByCategory(
     List<PostModel> allPosts, // Pass a list of posts instead of a single post
