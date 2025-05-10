@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:bluenote/widgets/guanlam/bottom_nav_bar.dart';
-import 'package:bluenote/widgets/guanlam/custom_app_bar.dart';
-import 'dart:io' show Platform;
+// import 'package:bluenote/widgets/guanlam/bottom_nav_bar.dart';
+// import 'package:bluenote/widgets/guanlam/custom_app_bar.dart';
+// import 'dart:io' show Platform;
 
 
 /// A screen that shows full details of a Lost & Found entry.

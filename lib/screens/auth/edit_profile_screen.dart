@@ -169,7 +169,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   }
                   return null;
                 },
-                onSaved: (value) {
+                onChanged: (value) {
                   _username = value ?? '';
                 },
               ),
@@ -215,7 +215,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   labelText: 'Bio',
                   border: OutlineInputBorder(),
                 ),
-                onSaved: (value) {
+                onChanged: (value) {
                   _bio = value ?? '';
                 },
               ),

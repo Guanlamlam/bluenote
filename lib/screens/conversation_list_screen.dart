@@ -264,7 +264,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
           );
         },
       ),
-      bottomNavigationBar: BottomNavBar(),
+
     );
   }
 }

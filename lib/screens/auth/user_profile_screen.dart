@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bluenote/screens/setting_screen.dart'; // Add Settings Screen Import
-import 'package:bluenote/widgets/yanqi/edit_profile_button.dart';
+import 'package:bluenote/widgets/yanqi/edit_profile_button.dart'; // Edit profile button
 import 'package:bluenote/widgets/yanqi/tabs.dart'; // Tab widget for 'Post' and 'Liked'
 import 'package:bluenote/screens/auth/login_screen.dart';
-
-import '../../widgets/guanlam/bottom_nav_bar.dart';
-import '../setting_screen.dart'; // Login screen for when user is not logged in
+import '../../widgets/guanlam/bottom_nav_bar.dart'; // Login screen for when user is not logged in
+import 'package:bluenote/screens/setting_screen.dart'; // Import the SettingsScreen
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -38,13 +36,13 @@ class UserProfileScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('User Profile'),
         actions: [
+          // Navigate to settings screen when the settings icon is clicked
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navigate to Settings screen when settings icon is pressed
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
+                MaterialPageRoute(builder: (context) => const SettingsScreen()), // Navigate to the settings screen
               );
             },
           ),
@@ -110,7 +108,7 @@ class UserProfileScreen extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // Tabs for Post, Liked, and Lost Found
-                    const Tabs(selectedTab: 'Post', userId: 'uid'), // Pass the userId to Tabs
+                    Tabs(selectedTab: 'Post', userId: user.uid), // Pass the userId to Tabs
                   ],
                 );
               },
