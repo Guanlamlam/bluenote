@@ -46,30 +46,30 @@ void saveTokenToDatabase(String userId) async {
       'fcmToken': token,
     });
   }
-
 }
-//added by lam!!!
-
 
 class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String _errorMessage = ''; // Variable to store error message
 
+  // Function to handle login
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     try {
+      // Attempt to sign in the user with Firebase
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Get userId (lam)!!
+      // If successful, save user data and navigate to HomeScreen
       String userId = userCredential.user!.uid;
       saveTokenToDatabase(userId);
 
-      // Get username from Firestore and cache it
+      // Fetch and cache user data from Firestore
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       if (userDoc.exists && userDoc.data() != null) {
         final userData = userDoc.data() as Map<String, dynamic>;
@@ -81,94 +81,85 @@ class _LoginFormState extends State<LoginForm> {
         );
       }
 
-
+      // Navigate to HomeScreen on successful login
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
 
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $e')),
-      );
+      // Show a custom error message for login failures
+      setState(() {
+        _errorMessage = 'Incorrect username or password. Please try again.';  // Custom error message
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: FormTheme.pagePadding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
+        padding: FormTheme.pagePadding,
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
 
-          const Text('Sign In', style: FormTheme.headerStyle),
-          const SizedBox(height: 4),
-          const Text('Enter your credentials', style: FormTheme.subTextStyle),
-          const SizedBox(height: 20),
+              const Text('Sign In', style: FormTheme.headerStyle),
+              const SizedBox(height: 4),
+              const Text('Enter your credentials', style: FormTheme.subTextStyle),
+              const SizedBox(height: 20),
 
-          // Email input
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: LoginInput(controller: _emailController, label: 'Email Address'),
-          ),
-          const SizedBox(height: 12),
+              // Email input
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: LoginInput(controller: _emailController, label: 'Email Address'),
+              ),
+              const SizedBox(height: 12),
 
-          // Password input + Forgot password
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                LoginInput(controller: _passwordController, label: 'Password', obscure: true),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // TODO: Implement forgot password screen
-                    },
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: const Text(
-                      'Forgot Password?',
-                      style: TextStyle(color: Colors.blue),
+              // Password input
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: LoginInput(controller: _passwordController, label: 'Password', obscure: true),
+              ),
+              const SizedBox(height: 20),
+
+              // Error message display
+              if (_errorMessage.isNotEmpty)
+                Text(
+                  _errorMessage,
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              const SizedBox(height: 10),
+
+              // Login button
+              LoginButton(onPressed: _signIn),
+              const SizedBox(height: 20),
+
+              // Sign up text centered
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                    );
+                  },
+                  child: const Text.rich(
+                    TextSpan(
+                      text: 'Do not have an Account? ',
+                      children: [
+                        TextSpan(
+                          text: 'Sign up',
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Login button
-          LoginButton(onPressed: _signIn),
-          const SizedBox(height: 20),
-
-          // Sign up text centered
-          Center(
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                );
-              },
-              child: const Text.rich(
-                TextSpan(
-                  text: 'Do not have an Account? ',
-                  children: [
-                    TextSpan(
-                      text: 'Sign up',
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                  ],
-                ),
               ),
+              const SizedBox(height: 24),
+            ],
             ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
+        );
+    }
 }
