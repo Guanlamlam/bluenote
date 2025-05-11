@@ -633,23 +633,5 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
 }
 
 
-class WordLimitInputFormatter extends TextInputFormatter {
-  final int maxWords;
 
-  WordLimitInputFormatter(this.maxWords);
-
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue,
-      ) {
-    final words = newValue.text.trim().split(RegExp(r'\s+'));
-
-    if (words.length > maxWords) {
-      return oldValue;
-    }
-
-    return newValue;
-  }
-}
 
