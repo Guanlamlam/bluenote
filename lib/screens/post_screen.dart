@@ -5,6 +5,7 @@ import 'package:bluenote/service/firebase_service.dart';
 import 'package:bluenote/widgets/guanlam/app_snack_bar.dart';
 import 'package:bluenote/widgets/guanlam/models/post_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
@@ -532,6 +533,11 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
                   if (value == null || value.isEmpty) {
                     return 'Title is required';
                   }
+
+                  final wordCount = value.trim().split(RegExp(r'\s+')).length;
+                  if (wordCount > 50) {
+                    return 'Title must be 50 words or fewer';
+                  }
                   return null;
                 },
               ),
@@ -547,6 +553,11 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Content is required';
+                  }
+
+                  final wordCount = value.trim().split(RegExp(r'\s+')).length;
+                  if (wordCount > 500) {
+                    return 'Content must be 500 words or fewer';
                   }
                   return null;
                 },
@@ -618,6 +629,27 @@ class _PostScreenState extends State<PostScreen> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+}
+
+
+class WordLimitInputFormatter extends TextInputFormatter {
+  final int maxWords;
+
+  WordLimitInputFormatter(this.maxWords);
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    final words = newValue.text.trim().split(RegExp(r'\s+'));
+
+    if (words.length > maxWords) {
+      return oldValue;
+    }
+
+    return newValue;
   }
 }
 
